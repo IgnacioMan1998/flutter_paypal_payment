@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
 
 // ─── Mock Repository ────────────────────────────────────
 

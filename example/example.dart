@@ -1,7 +1,7 @@
-// Example: How to use flutter_paypal_payment
+// Example: How to use paypal_checkout_flutter
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Shared: Initialize once

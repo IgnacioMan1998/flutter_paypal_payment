@@ -1,4 +1,4 @@
-# flutter_paypal_payment
+# paypal_checkout_flutter
 
 Paquete Flutter para integrar pagos con PayPal usando el **PayPal Mobile SDK v2.3.0** nativo de Android. Comunicación type-safe entre Dart y Kotlin vía [Pigeon](https://pub.dev/packages/pigeon).
 
@@ -34,9 +34,9 @@ Paquete Flutter para integrar pagos con PayPal usando el **PayPal Mobile SDK v2.
 
 ```yaml
 dependencies:
-  flutter_paypal_payment:
+  paypal_checkout_flutter:
     git:
-      url: https://github.com/TU_USUARIO/flutter_paypal_payment.git
+      url: https://github.com/TU_USUARIO/paypal_checkout_flutter.git
 ```
 
 ### Configuración Android
@@ -67,7 +67,7 @@ Inicializa una sola vez al arrancar la app. Después usa la instancia desde cual
 ```dart
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
 
 final paypal = FlutterPaypalPayment();
 
@@ -99,7 +99,7 @@ final result = await paypal.payDirect(
 ```dart
 // lib/injection.dart
 import 'package:get_it/get_it.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
 
 final getIt = GetIt.instance;
 
@@ -134,7 +134,7 @@ final result = await paypal.pay(PaymentRequest(orderId: 'ORDER_ID'));
 ```dart
 // lib/providers/paypal_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
 
 final paypalProvider = Provider<FlutterPaypalPayment>((ref) {
   throw UnimplementedError('Se inicializa en main');
@@ -448,7 +448,7 @@ final partial = await paypal.refund(
 
 ```
 lib/
-├── flutter_paypal_payment.dart       # Exports públicos
+├── paypal_checkout_flutter.dart       # Exports públicos
 └── src/
     ├── flutter_paypal_payment_plugin.dart  # API pública (FlutterPaypalPayment)
     ├── domain/
@@ -490,4 +490,4 @@ Callback → Pigeon → Dart → Either<Failure, Success>
 
 MIT
 
-# flutter_paypal_payment
+# paypal_checkout_flutter
