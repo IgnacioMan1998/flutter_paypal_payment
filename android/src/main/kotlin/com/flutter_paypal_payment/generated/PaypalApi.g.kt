@@ -58,6 +58,18 @@ enum class PaypalEnvironment(val raw: Int) {
   }
 }
 
+/** Funding source for PayPal web checkout. */
+enum class FundingSourceMessage(val raw: Int) {
+  PAYPAL(0),
+  PAY_LATER(1);
+
+  companion object {
+    fun ofRaw(raw: Int): FundingSourceMessage? {
+      return values().firstOrNull { it.raw == raw }
+    }
+  }
+}
+
 /**
  * Configuration to initialize the PayPal SDK.
  *
@@ -94,18 +106,22 @@ data class PaypalConfigMessage (
  */
 data class PaymentRequestMessage (
   /** The order ID created on your backend via PayPal Orders API. */
-  val orderId: String
+  val orderId: String,
+  /** The funding source: PayPal or Pay Later. */
+  val fundingSource: FundingSourceMessage
 )
  {
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): PaymentRequestMessage {
       val orderId = pigeonVar_list[0] as String
-      return PaymentRequestMessage(orderId)
+      val fundingSource = pigeonVar_list[1] as FundingSourceMessage
+      return PaymentRequestMessage(orderId, fundingSource)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       orderId,
+      fundingSource,
     )
   }
 }
@@ -334,46 +350,51 @@ private open class PaypalApiPigeonCodec : StandardMessageCodec() {
         }
       }
       130.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          PaypalConfigMessage.fromList(it)
+        return (readValue(buffer) as Long?)?.let {
+          FundingSourceMessage.ofRaw(it.toInt())
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PaymentRequestMessage.fromList(it)
+          PaypalConfigMessage.fromList(it)
         }
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          PaymentResultMessage.fromList(it)
+          PaymentRequestMessage.fromList(it)
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          CardMessage.fromList(it)
+          PaymentResultMessage.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          CardPaymentRequestMessage.fromList(it)
+          CardMessage.fromList(it)
         }
       }
       135.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          CardPaymentResultMessage.fromList(it)
+          CardPaymentRequestMessage.fromList(it)
         }
       }
       136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          VaultRequestMessage.fromList(it)
+          CardPaymentResultMessage.fromList(it)
         }
       }
       137.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          VaultResultMessage.fromList(it)
+          VaultRequestMessage.fromList(it)
         }
       }
       138.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          VaultResultMessage.fromList(it)
+        }
+      }
+      139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           CardVaultRequestMessage.fromList(it)
         }
@@ -387,40 +408,44 @@ private open class PaypalApiPigeonCodec : StandardMessageCodec() {
         stream.write(129)
         writeValue(stream, value.raw)
       }
-      is PaypalConfigMessage -> {
+      is FundingSourceMessage -> {
         stream.write(130)
-        writeValue(stream, value.toList())
+        writeValue(stream, value.raw)
       }
-      is PaymentRequestMessage -> {
+      is PaypalConfigMessage -> {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is PaymentResultMessage -> {
+      is PaymentRequestMessage -> {
         stream.write(132)
         writeValue(stream, value.toList())
       }
-      is CardMessage -> {
+      is PaymentResultMessage -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is CardPaymentRequestMessage -> {
+      is CardMessage -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is CardPaymentResultMessage -> {
+      is CardPaymentRequestMessage -> {
         stream.write(135)
         writeValue(stream, value.toList())
       }
-      is VaultRequestMessage -> {
+      is CardPaymentResultMessage -> {
         stream.write(136)
         writeValue(stream, value.toList())
       }
-      is VaultResultMessage -> {
+      is VaultRequestMessage -> {
         stream.write(137)
         writeValue(stream, value.toList())
       }
-      is CardVaultRequestMessage -> {
+      is VaultResultMessage -> {
         stream.write(138)
+        writeValue(stream, value.toList())
+      }
+      is CardVaultRequestMessage -> {
+        stream.write(139)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)

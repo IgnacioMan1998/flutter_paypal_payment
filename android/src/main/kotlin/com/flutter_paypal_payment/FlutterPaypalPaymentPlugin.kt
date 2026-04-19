@@ -7,6 +7,7 @@ import com.flutter_paypal_payment.generated.CardMessage
 import com.flutter_paypal_payment.generated.CardPaymentRequestMessage
 import com.flutter_paypal_payment.generated.CardPaymentResultMessage
 import com.flutter_paypal_payment.generated.CardVaultRequestMessage
+import com.flutter_paypal_payment.generated.FundingSourceMessage
 import com.flutter_paypal_payment.generated.PaymentRequestMessage
 import com.flutter_paypal_payment.generated.PaymentResultMessage
 import com.flutter_paypal_payment.generated.PaypalConfigMessage
@@ -304,9 +305,14 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         }
 
         try {
+            val fundingSource = when (request.fundingSource) {
+                FundingSourceMessage.PAY_LATER -> PayPalWebCheckoutFundingSource.PAY_LATER
+                else -> PayPalWebCheckoutFundingSource.PAYPAL
+            }
+
             val checkoutRequest = PayPalWebCheckoutRequest(
                 orderId = request.orderId,
-                fundingSource = PayPalWebCheckoutFundingSource.PAYPAL,
+                fundingSource = fundingSource,
             )
 
             pendingPaymentCallback = callback

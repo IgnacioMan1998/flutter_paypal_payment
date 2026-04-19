@@ -18,6 +18,9 @@ extension PaypalConfigMapper on domain.PaypalConfig {
 extension PaymentRequestMapper on PaymentRequest {
   PaymentRequestMessage toMessage() => PaymentRequestMessage(
         orderId: orderId,
+        fundingSource: fundingSource == PaypalFundingSource.payLater
+            ? FundingSourceMessage.payLater
+            : FundingSourceMessage.paypal,
       );
 }
 

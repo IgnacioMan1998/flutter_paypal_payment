@@ -30,14 +30,24 @@ class PaypalConfigMessage {
   final String? returnUrl;
 }
 
+/// Funding source for PayPal web checkout.
+enum FundingSourceMessage {
+  paypal,
+  payLater,
+}
+
 /// Request to start a PayPal checkout payment.
 class PaymentRequestMessage {
   PaymentRequestMessage({
     required this.orderId,
+    required this.fundingSource,
   });
 
   /// The order ID created on your backend via PayPal Orders API.
   final String orderId;
+
+  /// The funding source: PayPal or Pay Later.
+  final FundingSourceMessage fundingSource;
 }
 
 /// Result returned after a payment attempt.

@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'data/repositories/paypal_repository_impl.dart';
 import 'data/services/paypal_order_service.dart';
 import 'domain/entities/card_payment.dart';
+import 'domain/entities/payment_card.dart';
 import 'domain/entities/payment_params.dart';
 import 'domain/entities/payment_request.dart';
 import 'domain/entities/payment_result.dart';
@@ -162,4 +163,222 @@ class FlutterPaypalPayment {
   Future<Either<VaultFailure, VaultSuccess>> vaultCard(
           VaultCardRequest request) =>
       _repository.vaultCard(request);
+
+  /// Vault a PayPal account without a backend.
+  /// Creates the setup token, opens vault flow, and creates payment token — all in one call.
+  Future<Either<VaultFailure, VaultSuccess>> vaultPaypalDirect({
+    required String clientSecret,
+    Map<String, dynamic>? customer,
+    String usageType = 'MERCHANT',
+    String customerType = 'CONSUMER',
+    String usagePattern = 'IMMEDIATE',
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(VaultFailure(
+        message: 'PayPal SDK not initialized. Call init() first.',
+        code: 'NOT_INITIALIZED',
+      ));
+    }
+
+    final orderService = PaypalOrderService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      final setupResult = await orderService.createSetupToken(
+        paymentSource: {
+          'paypal': {
+            'usage_type': usageType,
+            'customer_type': customerType,
+            'usage_pattern': usagePattern,
+            'experience_context': {
+              'return_url': config.returnUrl,
+              'cancel_url': config.returnUrl,
+              'vault_instruction': 'ON_CREATE_PAYMENT_TOKENS',
+            },
+          },
+        },
+        customer: customer,
+      );
+
+      if (setupResult.isLeft()) {
+        return Left(VaultFailure(
+          message:
+              (setupResult as Left<PaymentFailure, Map<String, dynamic>>)
+                  .value
+                  .message,
+          code: 'SETUP_TOKEN_ERROR',
+        ));
+      }
+
+      final setupData =
+          (setupResult as Right<PaymentFailure, Map<String, dynamic>>).value;
+      final setupTokenId = setupData['id'] as String;
+
+      final vaultResult =
+          await _repository.vaultPaypal(VaultPaypalRequest(setupTokenId: setupTokenId));
+
+      if (vaultResult.isLeft()) return vaultResult;
+
+      final vaultSuccess =
+          (vaultResult as Right<VaultFailure, VaultSuccess>).value;
+
+      // Create permanent payment token from the approved setup token
+      final paymentTokenResult =
+          await orderService.createPaymentToken(vaultSuccess.setupTokenId);
+
+      if (paymentTokenResult.isLeft()) {
+        return Left(VaultFailure(
+          message:
+              (paymentTokenResult as Left<PaymentFailure, Map<String, dynamic>>)
+                  .value
+                  .message,
+          code: 'PAYMENT_TOKEN_ERROR',
+        ));
+      }
+
+      return Right(vaultSuccess);
+    } finally {
+      orderService.dispose();
+    }
+  }
+
+  /// Vault a card without a backend.
+  /// Creates the setup token, vaults the card, and creates payment token — all in one call.
+  Future<Either<VaultFailure, VaultSuccess>> vaultCardDirect({
+    required String clientSecret,
+    required PaymentCard card,
+    Map<String, dynamic>? customer,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(VaultFailure(
+        message: 'PayPal SDK not initialized. Call init() first.',
+        code: 'NOT_INITIALIZED',
+      ));
+    }
+
+    final orderService = PaypalOrderService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      final setupResult = await orderService.createSetupToken(
+        paymentSource: {
+          'card': {
+            'experience_context': {
+              'return_url': config.returnUrl,
+              'cancel_url': config.returnUrl,
+              'vault_instruction': 'ON_CREATE_PAYMENT_TOKENS',
+            },
+          },
+        },
+        customer: customer,
+      );
+
+      if (setupResult.isLeft()) {
+        return Left(VaultFailure(
+          message:
+              (setupResult as Left<PaymentFailure, Map<String, dynamic>>)
+                  .value
+                  .message,
+          code: 'SETUP_TOKEN_ERROR',
+        ));
+      }
+
+      final setupData =
+          (setupResult as Right<PaymentFailure, Map<String, dynamic>>).value;
+      final setupTokenId = setupData['id'] as String;
+
+      final vaultResult = await _repository.vaultCard(
+        VaultCardRequest(setupTokenId: setupTokenId, card: card),
+      );
+
+      if (vaultResult.isLeft()) return vaultResult;
+
+      final vaultSuccess =
+          (vaultResult as Right<VaultFailure, VaultSuccess>).value;
+
+      final paymentTokenResult =
+          await orderService.createPaymentToken(vaultSuccess.setupTokenId);
+
+      if (paymentTokenResult.isLeft()) {
+        return Left(VaultFailure(
+          message:
+              (paymentTokenResult as Left<PaymentFailure, Map<String, dynamic>>)
+                  .value
+                  .message,
+          code: 'PAYMENT_TOKEN_ERROR',
+        ));
+      }
+
+      return Right(vaultSuccess);
+    } finally {
+      orderService.dispose();
+    }
+  }
+
+  // ─── Order Management ───
+
+  /// Get the details of an existing order (requires clientSecret for direct API calls).
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getOrderDetails({
+    required String clientSecret,
+    required String orderId,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: 'PayPal SDK not initialized. Call init() first.',
+        code: 'NOT_INITIALIZED',
+      ));
+    }
+
+    final orderService = PaypalOrderService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await orderService.getOrderDetails(orderId);
+    } finally {
+      orderService.dispose();
+    }
+  }
+
+  /// Refund a captured payment (requires clientSecret for direct API calls).
+  ///
+  /// For a full refund, omit [amount] and [currencyCode].
+  /// For a partial refund, provide both [amount] and [currencyCode].
+  Future<Either<PaymentFailure, Map<String, dynamic>>> refund({
+    required String clientSecret,
+    required String captureId,
+    String? amount,
+    String? currencyCode,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: 'PayPal SDK not initialized. Call init() first.',
+        code: 'NOT_INITIALIZED',
+      ));
+    }
+
+    final orderService = PaypalOrderService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await orderService.refundCapture(
+        captureId,
+        amount: amount,
+        currencyCode: currencyCode,
+      );
+    } finally {
+      orderService.dispose();
+    }
+  }
 }

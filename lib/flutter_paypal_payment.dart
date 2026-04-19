@@ -1,5 +1,6 @@
 library;
 
+export 'src/data/services/paypal_order_service.dart';
 export 'src/domain/entities/card_payment.dart';
 export 'src/domain/entities/payment_card.dart';
 export 'src/domain/entities/payment_params.dart';

@@ -152,6 +152,181 @@ class PaypalOrderService {
     );
   }
 
+  /// Get the details of an existing order.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getOrderDetails(
+      String orderId) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.get(
+            Uri.parse('$_baseUrl/v2/checkout/orders/$orderId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          );
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: 'Failed to get order details: ${response.body}',
+            code: 'GET_ORDER_ERROR',
+          ));
+        } catch (e) {
+          return Left(
+              PaymentFailure(message: e.toString(), code: 'GET_ORDER_ERROR'));
+        }
+      },
+    );
+  }
+
+  /// Refund a captured payment.
+  ///
+  /// [captureId] – the capture ID from the order capture response.
+  /// [amount] and [currencyCode] are optional; omit them for a full refund.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> refundCapture(
+    String captureId, {
+    String? amount,
+    String? currencyCode,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final Map<String, dynamic> body = {};
+          if (amount != null && currencyCode != null) {
+            body['amount'] = {
+              'value': amount,
+              'currency_code': currencyCode,
+            };
+          }
+
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl/v2/payments/captures/$captureId/refund'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: body.isNotEmpty ? jsonEncode(body) : null,
+          );
+
+          if (response.statusCode == 201) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: 'Failed to refund capture: ${response.body}',
+            code: 'REFUND_ERROR',
+          ));
+        } catch (e) {
+          return Left(
+              PaymentFailure(message: e.toString(), code: 'REFUND_ERROR'));
+        }
+      },
+    );
+  }
+
+  /// Create a setup token for vaulting a payment method without a backend.
+  ///
+  /// [paymentSource] – e.g. `{'paypal': {'usage_type': 'MERCHANT', ...}}`
+  /// or `{'card': {'number': '...', 'expiry': '...', ...}}`.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> createSetupToken({
+    required Map<String, dynamic> paymentSource,
+    Map<String, dynamic>? customer,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final Map<String, dynamic> requestBody = {
+            'payment_source': paymentSource,
+          };
+          if (customer != null) {
+            requestBody['customer'] = customer;
+          }
+
+          final response = await _client.post(
+            Uri.parse('$_baseUrl/v3/vault/setup-tokens'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(requestBody),
+          );
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: 'Failed to create setup token: ${response.body}',
+            code: 'SETUP_TOKEN_ERROR',
+          ));
+        } catch (e) {
+          return Left(PaymentFailure(
+              message: e.toString(), code: 'SETUP_TOKEN_ERROR'));
+        }
+      },
+    );
+  }
+
+  /// Create a payment token from an approved setup token.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> createPaymentToken(
+      String setupTokenId) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final body = jsonEncode({
+            'payment_source': {
+              'token': {
+                'id': setupTokenId,
+                'type': 'SETUP_TOKEN',
+              },
+            },
+          });
+
+          final response = await _client.post(
+            Uri.parse('$_baseUrl/v3/vault/payment-tokens'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: body,
+          );
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: 'Failed to create payment token: ${response.body}',
+            code: 'PAYMENT_TOKEN_ERROR',
+          ));
+        } catch (e) {
+          return Left(PaymentFailure(
+              message: e.toString(), code: 'PAYMENT_TOKEN_ERROR'));
+        }
+      },
+    );
+  }
+
   void dispose() {
     _client.close();
   }

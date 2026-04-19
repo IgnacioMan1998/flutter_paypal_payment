@@ -109,6 +109,16 @@ void main() {
     test('PaymentRequest stores orderId', () {
       const req = PaymentRequest(orderId: 'ORDER-123');
       expect(req.orderId, 'ORDER-123');
+      expect(req.fundingSource, PaypalFundingSource.paypal);
+    });
+
+    test('PaymentRequest with Pay Later funding source', () {
+      const req = PaymentRequest(
+        orderId: 'ORDER-456',
+        fundingSource: PaypalFundingSource.payLater,
+      );
+      expect(req.orderId, 'ORDER-456');
+      expect(req.fundingSource, PaypalFundingSource.payLater);
     });
 
     test('PaymentSuccess stores orderId and payerId', () {
@@ -626,6 +636,146 @@ void main() {
         const PaymentRequest(orderId: 'O-700'),
       );
       expect(payResult.isRight(), true);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // Pay Later tests
+  // ═══════════════════════════════════════════════════════
+
+  group('Pay Later', () {
+    test('pay() accepts PayLater funding source', () async {
+      mockRepo.paymentResult = const Right(
+        PaymentSuccess(orderId: 'O-PL', payerId: 'P-PL'),
+      );
+
+      final result = await paypal.pay(
+        const PaymentRequest(
+          orderId: 'O-PL',
+          fundingSource: PaypalFundingSource.payLater,
+        ),
+      );
+
+      expect(mockRepo.paymentCalls, 1);
+      expect(mockRepo.lastPaymentRequest?.fundingSource,
+          PaypalFundingSource.payLater);
+      expect(result.isRight(), true);
+    });
+
+    test('pay() defaults to PayPal funding source', () async {
+      mockRepo.paymentResult = const Right(
+        PaymentSuccess(orderId: 'O-DEF'),
+      );
+
+      await paypal.pay(const PaymentRequest(orderId: 'O-DEF'));
+
+      expect(mockRepo.lastPaymentRequest?.fundingSource,
+          PaypalFundingSource.paypal);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // vaultPaypalDirect() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('vaultPaypalDirect()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.vaultPaypalDirect(
+        clientSecret: 'secret',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // vaultCardDirect() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('vaultCardDirect()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.vaultCardDirect(
+        clientSecret: 'secret',
+        card: testCard,
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // getOrderDetails() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('getOrderDetails()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.getOrderDetails(
+        clientSecret: 'secret',
+        orderId: 'ORDER-123',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // refund() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('refund()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.refund(
+        clientSecret: 'secret',
+        captureId: 'CAP-123',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('partial refund returns NOT_INITIALIZED when init() not called',
+        () async {
+      final result = await paypal.refund(
+        clientSecret: 'secret',
+        captureId: 'CAP-456',
+        amount: '5.00',
+        currencyCode: 'USD',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // PaypalFundingSource enum tests
+  // ═══════════════════════════════════════════════════════
+
+  group('PaypalFundingSource', () {
+    test('has paypal and payLater values', () {
+      expect(PaypalFundingSource.values.length, 2);
+      expect(PaypalFundingSource.values,
+          contains(PaypalFundingSource.paypal));
+      expect(PaypalFundingSource.values,
+          contains(PaypalFundingSource.payLater));
     });
   });
 }

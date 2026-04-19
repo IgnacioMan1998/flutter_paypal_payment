@@ -21,6 +21,12 @@ enum PaypalEnvironment {
   live,
 }
 
+/// Funding source for PayPal web checkout.
+enum FundingSourceMessage {
+  paypal,
+  payLater,
+}
+
 /// Configuration to initialize the PayPal SDK.
 class PaypalConfigMessage {
   PaypalConfigMessage({
@@ -58,14 +64,19 @@ class PaypalConfigMessage {
 class PaymentRequestMessage {
   PaymentRequestMessage({
     required this.orderId,
+    required this.fundingSource,
   });
 
   /// The order ID created on your backend via PayPal Orders API.
   String orderId;
 
+  /// The funding source: PayPal or Pay Later.
+  FundingSourceMessage fundingSource;
+
   Object encode() {
     return <Object?>[
       orderId,
+      fundingSource,
     ];
   }
 
@@ -73,6 +84,7 @@ class PaymentRequestMessage {
     result as List<Object?>;
     return PaymentRequestMessage(
       orderId: result[0]! as String,
+      fundingSource: result[1]! as FundingSourceMessage,
     );
   }
 }
@@ -344,32 +356,35 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PaypalEnvironment) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    }    else if (value is PaypalConfigMessage) {
+    }    else if (value is FundingSourceMessage) {
       buffer.putUint8(130);
-      writeValue(buffer, value.encode());
-    }    else if (value is PaymentRequestMessage) {
+      writeValue(buffer, value.index);
+    }    else if (value is PaypalConfigMessage) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    }    else if (value is PaymentResultMessage) {
+    }    else if (value is PaymentRequestMessage) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    }    else if (value is CardMessage) {
+    }    else if (value is PaymentResultMessage) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    }    else if (value is CardPaymentRequestMessage) {
+    }    else if (value is CardMessage) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    }    else if (value is CardPaymentResultMessage) {
+    }    else if (value is CardPaymentRequestMessage) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is VaultRequestMessage) {
+    }    else if (value is CardPaymentResultMessage) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is VaultResultMessage) {
+    }    else if (value is VaultRequestMessage) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is CardVaultRequestMessage) {
+    }    else if (value is VaultResultMessage) {
       buffer.putUint8(138);
+      writeValue(buffer, value.encode());
+    }    else if (value is CardVaultRequestMessage) {
+      buffer.putUint8(139);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -383,22 +398,25 @@ class _PigeonCodec extends StandardMessageCodec {
         final int? value = readValue(buffer) as int?;
         return value == null ? null : PaypalEnvironment.values[value];
       case 130: 
-        return PaypalConfigMessage.decode(readValue(buffer)!);
+        final int? value = readValue(buffer) as int?;
+        return value == null ? null : FundingSourceMessage.values[value];
       case 131: 
-        return PaymentRequestMessage.decode(readValue(buffer)!);
+        return PaypalConfigMessage.decode(readValue(buffer)!);
       case 132: 
-        return PaymentResultMessage.decode(readValue(buffer)!);
+        return PaymentRequestMessage.decode(readValue(buffer)!);
       case 133: 
-        return CardMessage.decode(readValue(buffer)!);
+        return PaymentResultMessage.decode(readValue(buffer)!);
       case 134: 
-        return CardPaymentRequestMessage.decode(readValue(buffer)!);
+        return CardMessage.decode(readValue(buffer)!);
       case 135: 
-        return CardPaymentResultMessage.decode(readValue(buffer)!);
+        return CardPaymentRequestMessage.decode(readValue(buffer)!);
       case 136: 
-        return VaultRequestMessage.decode(readValue(buffer)!);
+        return CardPaymentResultMessage.decode(readValue(buffer)!);
       case 137: 
-        return VaultResultMessage.decode(readValue(buffer)!);
+        return VaultRequestMessage.decode(readValue(buffer)!);
       case 138: 
+        return VaultResultMessage.decode(readValue(buffer)!);
+      case 139: 
         return CardVaultRequestMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
