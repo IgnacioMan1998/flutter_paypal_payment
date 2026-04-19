@@ -1,3 +1,11 @@
+## 0.0.5
+
+- **Fix iOS**: Updated callback signatures to use `Result<T, CoreSDKError>` pattern (iOS SDK v2.0.1 API)
+- **Fix iOS**: Changed `PayPalWebCheckoutFundingSource.payLater` to `.paylater`
+- **Fix iOS**: Removed `CorePayments.` prefix — types are available directly via `import PayPal`
+- **Fix Android**: Added required `returnUrl` parameter to `CardRequest`
+- **Fix Android**: Updated `PayPalWebCheckoutFinishVaultResult.Success` to use `approvalSessionId`
+
 ## 0.0.4
 
 - **Fix iOS build**: Changed `import CorePayments`, `import CardPayments`, `import PayPalWebPayments` to `import PayPal` — CocoaPods compiles all subspecs into a single module

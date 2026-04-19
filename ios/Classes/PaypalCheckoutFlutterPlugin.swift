@@ -17,7 +17,7 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
     // MARK: - PaypalHostApi: initialize
 
     func initialize(config: PaypalConfigMessage, completion: @escaping (Result<Void, Error>) -> Void) {
-        let environment: CorePayments.Environment
+        let environment: Environment
         switch config.environment {
         case .sandbox:
             environment = .sandbox
@@ -49,34 +49,26 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
         let fundingSource: PayPalWebCheckoutFundingSource
         switch request.fundingSource {
         case .payLater:
-            fundingSource = .payLater
+            fundingSource = .paylater
         default:
             fundingSource = .paypal
         }
 
         let checkoutRequest = PayPalWebCheckoutRequest(orderID: request.orderId, fundingSource: fundingSource)
 
-        client.start(request: checkoutRequest) { result, error in
-            if let error = error {
+        client.start(request: checkoutRequest) { result in
+            switch result {
+            case .success(let checkoutResult):
+                completion(.success(PaymentResultMessage(
+                    success: true,
+                    orderId: checkoutResult.orderID,
+                    payerId: checkoutResult.payerID
+                )))
+            case .failure(let error):
                 completion(.success(PaymentResultMessage(
                     success: false,
                     errorMessage: error.localizedDescription,
-                    errorCode: "NATIVE_ERROR"
-                )))
-                return
-            }
-
-            if let result = result {
-                completion(.success(PaymentResultMessage(
-                    success: true,
-                    orderId: result.orderID,
-                    payerId: result.payerID
-                )))
-            } else {
-                completion(.success(PaymentResultMessage(
-                    success: false,
-                    errorMessage: "Payment cancelled by user.",
-                    errorCode: "CANCELLED"
+                    errorCode: String(error.code)
                 )))
             }
         }
@@ -112,28 +104,20 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
 
         let cardRequest = CardRequest(orderID: request.orderId, card: card, sca: sca)
 
-        client.approveOrder(request: cardRequest) { result, error in
-            if let error = error {
+        client.approveOrder(request: cardRequest) { result in
+            switch result {
+            case .success(let cardResult):
+                completion(.success(CardPaymentResultMessage(
+                    success: true,
+                    orderId: cardResult.orderID,
+                    status: cardResult.status,
+                    didAttemptThreeDSecureAuthentication: cardResult.didAttemptThreeDSecureAuthentication
+                )))
+            case .failure(let error):
                 completion(.success(CardPaymentResultMessage(
                     success: false,
                     errorMessage: error.localizedDescription,
-                    errorCode: "NATIVE_ERROR"
-                )))
-                return
-            }
-
-            if let result = result {
-                completion(.success(CardPaymentResultMessage(
-                    success: true,
-                    orderId: result.orderID,
-                    status: result.status,
-                    didAttemptThreeDSecureAuthentication: result.didAttemptThreeDSecureAuthentication
-                )))
-            } else {
-                completion(.success(CardPaymentResultMessage(
-                    success: false,
-                    errorMessage: "Card payment cancelled by user.",
-                    errorCode: "CANCELLED"
+                    errorCode: String(error.code)
                 )))
             }
         }
@@ -153,27 +137,19 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
 
         let vaultRequest = PayPalVaultRequest(setupTokenID: request.setupTokenId)
 
-        client.vault(vaultRequest) { result, error in
-            if let error = error {
+        client.vault(vaultRequest) { result in
+            switch result {
+            case .success(let vaultResult):
+                completion(.success(VaultResultMessage(
+                    success: true,
+                    setupTokenId: vaultResult.tokenID,
+                    status: vaultResult.approvalSessionID
+                )))
+            case .failure(let error):
                 completion(.success(VaultResultMessage(
                     success: false,
                     errorMessage: error.localizedDescription,
-                    errorCode: "NATIVE_ERROR"
-                )))
-                return
-            }
-
-            if let result = result {
-                completion(.success(VaultResultMessage(
-                    success: true,
-                    setupTokenId: result.tokenID,
-                    status: result.approvalSessionID
-                )))
-            } else {
-                completion(.success(VaultResultMessage(
-                    success: false,
-                    errorMessage: "Vault cancelled by user.",
-                    errorCode: "CANCELLED"
+                    errorCode: String(error.code)
                 )))
             }
         }
@@ -201,29 +177,16 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
 
         let cardVaultRequest = CardVaultRequest(card: card, setupTokenID: request.setupTokenId)
 
-        client.vault(cardVaultRequest) { result, error in
-            if let error = error {
+        client.vault(cardVaultRequest) { result in
+            switch result {
+            case .success(let cardVaultResult):
+                completion(.success(VaultResultMessage(
+                    success: true,
+                    setupTokenId: cardVaultResult.setupTokenID,
+                    status: cardVaultResult.status
+                )))
+            case .failure(let error):
                 completion(.success(VaultResultMessage(
                     success: false,
                     errorMessage: error.localizedDescription,
-                    errorCode: "NATIVE_ERROR"
-                )))
-                return
-            }
-
-            if let result = result {
-                completion(.success(VaultResultMessage(
-                    success: true,
-                    setupTokenId: result.setupTokenID,
-                    status: result.status
-                )))
-            } else {
-                completion(.success(VaultResultMessage(
-                    success: false,
-                    errorMessage: "Card vault cancelled by user.",
-                    errorCode: "CANCELLED"
-                )))
-            }
-        }
-    }
-}
+                    errorCode: String(error.code)
