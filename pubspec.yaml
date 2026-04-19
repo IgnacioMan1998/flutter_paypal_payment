@@ -1,6 +1,6 @@
 name: paypal_checkout_flutter
-description: "A Flutter package for PayPal payments using Pigeon for type-safe Dart/Kotlin/Swift communication."
-version: 0.0.2
+description: "Complete PayPal integration for Flutter — native SDK checkout, card payments, vault, subscriptions, billing plans, catalog products, orders, refunds & authorization. 21 API endpoints. No WebView."
+version: 0.0.3
 homepage: https://github.com/IgnacioMan1998/flutter_paypal_payment
 repository: https://github.com/IgnacioMan1998/flutter_paypal_payment
 issue_tracker: https://github.com/IgnacioMan1998/flutter_paypal_payment/issues
@@ -8,7 +8,8 @@ topics:
   - paypal
   - payments
   - checkout
-  - flutter
+  - subscriptions
+  - in-app-purchase
 
 environment:
   sdk: ^3.11.5
