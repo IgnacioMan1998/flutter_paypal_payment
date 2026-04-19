@@ -66,7 +66,7 @@ import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 final paypal = FlutterPaypalPayment();
 
 await paypal.init(
-  const PaypalConfig(
+  PaypalConfig(
     clientId: 'TU_CLIENT_ID',
     environment: PaypalEnvironment.sandbox, // o .live
     returnUrl: 'com.example.myapp://paypalpay',
@@ -102,7 +102,7 @@ Crea la orden, abre el checkout y captura el pago — todo desde Flutter.
 ```dart
 final result = await paypal.payDirect(
   clientSecret: 'TU_CLIENT_SECRET',
-  params: const PaymentParams(
+  params: PaymentParams(
     amount: '25.00',
     currencyCode: 'USD',
     description: 'Compra de producto X',
@@ -134,7 +134,7 @@ Cobra directamente una tarjeta sin que el usuario inicie sesión en PayPal. Sopo
 final result = await paypal.payWithCard(
   CardPaymentRequest(
     orderId: 'ORDER_ID_DEL_BACKEND',
-    card: const PaymentCard(
+    card: PaymentCard(
       number: '4111111111111111',
       expirationMonth: '12',
       expirationYear: '2028',
@@ -158,14 +158,14 @@ result.fold(
 ```dart
 final result = await paypal.payWithCardDirect(
   clientSecret: 'TU_CLIENT_SECRET',
-  params: const PaymentParams(
+  params: PaymentParams(
     amount: '50.00',
     currencyCode: 'USD',
     description: 'Compra con tarjeta',
   ),
   buildRequest: (orderId) => CardPaymentRequest(
     orderId: orderId,
-    card: const PaymentCard(
+    card: PaymentCard(
       number: '4111111111111111',
       expirationMonth: '12',
       expirationYear: '2028',
@@ -208,7 +208,7 @@ Guarda una tarjeta para cobros futuros, con soporte de 3D Secure.
 final result = await paypal.vaultCard(
   VaultCardRequest(
     setupTokenId: 'SETUP_TOKEN_DEL_BACKEND',
-    card: const PaymentCard(
+    card: PaymentCard(
       number: '4111111111111111',
       expirationMonth: '12',
       expirationYear: '2028',
@@ -270,7 +270,7 @@ result.fold(
 ```dart
 final result = await paypal.vaultCardDirect(
   clientSecret: 'TU_CLIENT_SECRET',
-  card: const PaymentCard(
+  card: PaymentCard(
     number: '4111111111111111',
     expirationMonth: '12',
     expirationYear: '2028',

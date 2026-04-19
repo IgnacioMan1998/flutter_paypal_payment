@@ -30,8 +30,20 @@
 
 ### Tests
 
-- 50 tests unitarios (9 nuevos)
+- 61 tests unitarios (20 nuevos)
 - Cobertura de Pay Later, vaultPaypalDirect, vaultCardDirect, getOrderDetails, refund
+- Tests de validación de entrada: amount, currencyCode, card number (Luhn), CVV, returnUrl
+
+### Seguridad
+
+- **Mensajes de error sanitizados**: Ya no se exponen cuerpos crudos de respuestas PayPal en errores. Solo se extraen `name`, `message` y `debug_id`
+- **Cache de access tokens**: Se reutiliza el token OAuth2 hasta su expiración (con margen de 60s), evitando llamadas redundantes
+- **Validación de entrada** en entidades:
+  - `PaymentParams`: Valida formato de `amount` (decimal), `currencyCode` (ISO 4217 3 letras), `softDescriptor` (máx 22 chars)
+  - `PaymentCard`: Valida número con Luhn check, mes 01-12, año 4 dígitos, CVV 3-4 dígitos
+  - `PaypalConfig`: Valida `clientId` no vacío, `returnUrl` con formato de deep link válido
+- **Protección contra path injection**: IDs de orden/captura validados contra `^[A-Za-z0-9_-]+$` y codificados con `Uri.encodeComponent()`
+- **Limpieza de tokens en dispose()**: Se borran token cacheado y fecha de expiración al cerrar el servicio
 
 ---
 

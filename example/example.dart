@@ -11,7 +11,7 @@ final paypal = FlutterPaypalPayment();
 
 Future<void> initialize() async {
   final result = await paypal.init(
-    const PaypalConfig(
+    PaypalConfig(
       clientId: 'YOUR_PAYPAL_CLIENT_ID',
       environment: PaypalEnvironment.sandbox,
       returnUrl: 'com.example.myapp://paypalpay',
@@ -49,7 +49,7 @@ Future<void> payWithBackend() async {
 Future<void> payWithoutBackend() async {
   final result = await paypal.payDirect(
     clientSecret: 'YOUR_PAYPAL_CLIENT_SECRET',
-    params: const PaymentParams(
+    params: PaymentParams(
       amount: '25.00',
       currencyCode: 'USD',
       description: 'Compra de producto X',
@@ -72,7 +72,7 @@ Future<void> payWithCard() async {
   final result = await paypal.payWithCard(
     CardPaymentRequest(
       orderId: orderId,
-      card: const PaymentCard(
+      card: PaymentCard(
         number: '4111111111111111',
         expirationMonth: '12',
         expirationYear: '2028',
@@ -95,14 +95,14 @@ Future<void> payWithCard() async {
 Future<void> payWithCardDirect() async {
   final result = await paypal.payWithCardDirect(
     clientSecret: 'YOUR_PAYPAL_CLIENT_SECRET',
-    params: const PaymentParams(
+    params: PaymentParams(
       amount: '50.00',
       currencyCode: 'USD',
       description: 'Card purchase',
     ),
     buildRequest: (orderId) => CardPaymentRequest(
       orderId: orderId,
-      card: const PaymentCard(
+      card: PaymentCard(
         number: '4111111111111111',
         expirationMonth: '12',
         expirationYear: '2028',
@@ -145,7 +145,7 @@ Future<void> vaultCreditCard() async {
   final result = await paypal.vaultCard(
     VaultCardRequest(
       setupTokenId: setupTokenId,
-      card: const PaymentCard(
+      card: PaymentCard(
         number: '4111111111111111',
         expirationMonth: '12',
         expirationYear: '2028',
@@ -203,7 +203,7 @@ Future<void> vaultPaypalDirect() async {
 Future<void> vaultCardDirect() async {
   final result = await paypal.vaultCardDirect(
     clientSecret: 'YOUR_PAYPAL_CLIENT_SECRET',
-    card: const PaymentCard(
+    card: PaymentCard(
       number: '4111111111111111',
       expirationMonth: '12',
       expirationYear: '2028',

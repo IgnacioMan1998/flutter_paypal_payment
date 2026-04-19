@@ -67,13 +67,13 @@ void main() {
   late MockPaypalRepository mockRepo;
   late FlutterPaypalPayment paypal;
 
-  const testConfig = PaypalConfig(
+  final testConfig = PaypalConfig(
     clientId: 'test-client-id',
     environment: PaypalEnvironment.sandbox,
     returnUrl: 'com.test.app://paypalpay',
   );
 
-  const testCard = PaymentCard(
+  final testCard = PaymentCard(
     number: '4111111111111111',
     expirationMonth: '12',
     expirationYear: '2028',
@@ -98,7 +98,7 @@ void main() {
     });
 
     test('PaypalConfig allows null returnUrl', () {
-      const config = PaypalConfig(
+      final config = PaypalConfig(
         clientId: 'id',
         environment: PaypalEnvironment.live,
       );
@@ -147,7 +147,7 @@ void main() {
     });
 
     test('PaymentCard allows null cardholderName', () {
-      const card = PaymentCard(
+      final card = PaymentCard(
         number: '4111111111111111',
         expirationMonth: '01',
         expirationYear: '2030',
@@ -157,7 +157,7 @@ void main() {
     });
 
     test('CardPaymentRequest stores orderId, card and sca', () {
-      const req = CardPaymentRequest(
+      final req = CardPaymentRequest(
         orderId: 'O-2',
         card: testCard,
         sca: 'SCA_ALWAYS',
@@ -168,7 +168,7 @@ void main() {
     });
 
     test('CardPaymentRequest defaults sca to null', () {
-      const req = CardPaymentRequest(orderId: 'O-3', card: testCard);
+      final req = CardPaymentRequest(orderId: 'O-3', card: testCard);
       expect(req.sca, isNull);
     });
 
@@ -195,7 +195,7 @@ void main() {
     });
 
     test('VaultCardRequest stores setupTokenId and card', () {
-      const req = VaultCardRequest(setupTokenId: 'ST-2', card: testCard);
+      final req = VaultCardRequest(setupTokenId: 'ST-2', card: testCard);
       expect(req.setupTokenId, 'ST-2');
       expect(req.card.number, '4111111111111111');
     });
@@ -213,7 +213,7 @@ void main() {
     });
 
     test('PaymentParams stores all fields', () {
-      const p = PaymentParams(
+      final p = PaymentParams(
         amount: '99.99',
         currencyCode: 'EUR',
         description: 'Test',
@@ -230,11 +230,142 @@ void main() {
     });
 
     test('PaymentParams optional fields default to null', () {
-      const p = PaymentParams(amount: '10.00', currencyCode: 'USD');
+      final p = PaymentParams(amount: '10.00', currencyCode: 'USD');
       expect(p.description, isNull);
       expect(p.customId, isNull);
       expect(p.invoiceId, isNull);
       expect(p.softDescriptor, isNull);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // Input validation tests
+  // ═══════════════════════════════════════════════════════
+
+  group('Input validation', () {
+    test('PaymentParams rejects invalid amount', () {
+      expect(() => PaymentParams(amount: 'abc', currencyCode: 'USD'),
+          throwsArgumentError);
+      expect(() => PaymentParams(amount: '-10', currencyCode: 'USD'),
+          throwsArgumentError);
+      expect(() => PaymentParams(amount: '', currencyCode: 'USD'),
+          throwsArgumentError);
+    });
+
+    test('PaymentParams accepts valid amounts', () {
+      expect(PaymentParams(amount: '25.00', currencyCode: 'USD').amount,
+          '25.00');
+      expect(
+          PaymentParams(amount: '100', currencyCode: 'EUR').amount, '100');
+      expect(PaymentParams(amount: '0.50', currencyCode: 'MXN').amount,
+          '0.50');
+    });
+
+    test('PaymentParams rejects invalid currencyCode', () {
+      expect(() => PaymentParams(amount: '10.00', currencyCode: 'us'),
+          throwsArgumentError);
+      expect(() => PaymentParams(amount: '10.00', currencyCode: 'USDD'),
+          throwsArgumentError);
+      expect(() => PaymentParams(amount: '10.00', currencyCode: ''),
+          throwsArgumentError);
+    });
+
+    test('PaymentParams rejects long softDescriptor', () {
+      expect(
+          () => PaymentParams(
+                amount: '10.00',
+                currencyCode: 'USD',
+                softDescriptor: 'A' * 23,
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaymentCard rejects invalid card number (Luhn)', () {
+      expect(
+          () => PaymentCard(
+                number: '4111111111111112', // fails Luhn
+                expirationMonth: '12',
+                expirationYear: '2028',
+                securityCode: '123',
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaymentCard rejects non-numeric card number', () {
+      expect(
+          () => PaymentCard(
+                number: 'abcd1234',
+                expirationMonth: '12',
+                expirationYear: '2028',
+                securityCode: '123',
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaymentCard rejects invalid expiration month', () {
+      expect(
+          () => PaymentCard(
+                number: '4111111111111111',
+                expirationMonth: '13',
+                expirationYear: '2028',
+                securityCode: '123',
+              ),
+          throwsArgumentError);
+      expect(
+          () => PaymentCard(
+                number: '4111111111111111',
+                expirationMonth: '00',
+                expirationYear: '2028',
+                securityCode: '123',
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaymentCard rejects invalid CVV', () {
+      expect(
+          () => PaymentCard(
+                number: '4111111111111111',
+                expirationMonth: '12',
+                expirationYear: '2028',
+                securityCode: '12', // too short
+              ),
+          throwsArgumentError);
+      expect(
+          () => PaymentCard(
+                number: '4111111111111111',
+                expirationMonth: '12',
+                expirationYear: '2028',
+                securityCode: '12345', // too long
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaypalConfig rejects empty clientId', () {
+      expect(
+          () => PaypalConfig(
+                clientId: '',
+                environment: PaypalEnvironment.sandbox,
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaypalConfig rejects invalid returnUrl', () {
+      expect(
+          () => PaypalConfig(
+                clientId: 'id',
+                environment: PaypalEnvironment.sandbox,
+                returnUrl: 'not a url',
+              ),
+          throwsArgumentError);
+    });
+
+    test('PaypalConfig accepts valid returnUrl', () {
+      final config = PaypalConfig(
+        clientId: 'id',
+        environment: PaypalEnvironment.sandbox,
+        returnUrl: 'com.example.app://callback',
+      );
+      expect(config.returnUrl, 'com.example.app://callback');
     });
   });
 
@@ -362,7 +493,7 @@ void main() {
     test('returns NOT_INITIALIZED when init() not called', () async {
       final result = await paypal.payDirect(
         clientSecret: 'secret',
-        params: const PaymentParams(amount: '10.00', currencyCode: 'USD'),
+        params: PaymentParams(amount: '10.00', currencyCode: 'USD'),
       );
 
       expect(result.isLeft(), true);
@@ -388,7 +519,7 @@ void main() {
       );
 
       final result = await paypal.payWithCard(
-        const CardPaymentRequest(orderId: 'O-300', card: testCard),
+        CardPaymentRequest(orderId: 'O-300', card: testCard),
       );
 
       expect(mockRepo.cardCalls, 1);
@@ -411,7 +542,7 @@ void main() {
       );
 
       final result = await paypal.payWithCard(
-        const CardPaymentRequest(orderId: 'O-301', card: testCard),
+        CardPaymentRequest(orderId: 'O-301', card: testCard),
       );
 
       expect(result.isLeft(), true);
@@ -430,7 +561,7 @@ void main() {
       );
 
       await paypal.payWithCard(
-        const CardPaymentRequest(
+        CardPaymentRequest(
           orderId: 'O-302',
           card: testCard,
           sca: 'SCA_ALWAYS',
@@ -449,7 +580,7 @@ void main() {
     test('returns NOT_INITIALIZED when init() not called', () async {
       final result = await paypal.payWithCardDirect(
         clientSecret: 'secret',
-        params: const PaymentParams(amount: '50.00', currencyCode: 'USD'),
+        params: PaymentParams(amount: '50.00', currencyCode: 'USD'),
         buildRequest: (orderId) =>
             CardPaymentRequest(orderId: orderId, card: testCard),
       );
@@ -522,7 +653,7 @@ void main() {
       );
 
       final result = await paypal.vaultCard(
-        const VaultCardRequest(setupTokenId: 'ST-200', card: testCard),
+        VaultCardRequest(setupTokenId: 'ST-200', card: testCard),
       );
 
       expect(mockRepo.vaultCardCalls, 1);
@@ -544,7 +675,7 @@ void main() {
       );
 
       final result = await paypal.vaultCard(
-        const VaultCardRequest(setupTokenId: 'ST-201', card: testCard),
+        VaultCardRequest(setupTokenId: 'ST-201', card: testCard),
       );
 
       expect(result.isLeft(), true);
@@ -600,13 +731,13 @@ void main() {
 
       final r1 = await paypal.pay(const PaymentRequest(orderId: 'O-600'));
       final r2 = await paypal.payWithCard(
-        const CardPaymentRequest(orderId: 'O-601', card: testCard),
+        CardPaymentRequest(orderId: 'O-601', card: testCard),
       );
       final r3 = await paypal.vaultPaypal(
         const VaultPaypalRequest(setupTokenId: 'ST-600'),
       );
       final r4 = await paypal.vaultCard(
-        const VaultCardRequest(setupTokenId: 'ST-601', card: testCard),
+        VaultCardRequest(setupTokenId: 'ST-601', card: testCard),
       );
 
       expect(r1.isRight(), true);
