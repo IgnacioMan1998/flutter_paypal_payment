@@ -58,21 +58,137 @@ En tu `AndroidManifest.xml`, agrega el intent filter para el deep link de retorn
 
 ## Uso
 
-### 1. Inicializar (una sola vez)
+### 1. Inicializar (una sola vez en `main`)
+
+Inicializa una sola vez al arrancar la app. Después usa la instancia desde cualquier pantalla.
+
+#### Opción A: Variable global (simple)
 
 ```dart
+// lib/main.dart
+import 'package:flutter/material.dart';
 import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 
 final paypal = FlutterPaypalPayment();
 
-await paypal.init(
-  PaypalConfig(
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await paypal.init(PaypalConfig(
     clientId: 'TU_CLIENT_ID',
-    environment: PaypalEnvironment.sandbox, // o .live
+    environment: PaypalEnvironment.sandbox,
     returnUrl: 'com.example.myapp://paypalpay',
-  ),
+  ));
+
+  runApp(MyApp());
+}
+```
+
+```dart
+// En cualquier pantalla
+import '../main.dart'; // o donde declaraste `paypal`
+
+final result = await paypal.payDirect(
+  clientSecret: 'TU_SECRET',
+  params: PaymentParams(amount: '25.00', currencyCode: 'USD'),
 );
 ```
+
+#### Opción B: GetIt (inyección de dependencias)
+
+```dart
+// lib/injection.dart
+import 'package:get_it/get_it.dart';
+import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+
+final getIt = GetIt.instance;
+
+Future<void> configureDependencies() async {
+  final paypal = FlutterPaypalPayment();
+  await paypal.init(PaypalConfig(
+    clientId: 'TU_CLIENT_ID',
+    environment: PaypalEnvironment.sandbox,
+    returnUrl: 'com.example.myapp://paypalpay',
+  ));
+  getIt.registerSingleton<FlutterPaypalPayment>(paypal);
+}
+```
+
+```dart
+// lib/main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await configureDependencies();
+  runApp(MyApp());
+}
+```
+
+```dart
+// En cualquier pantalla o servicio
+final paypal = getIt<FlutterPaypalPayment>();
+final result = await paypal.pay(PaymentRequest(orderId: 'ORDER_ID'));
+```
+
+#### Opción C: Riverpod
+
+```dart
+// lib/providers/paypal_provider.dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
+
+final paypalProvider = Provider<FlutterPaypalPayment>((ref) {
+  throw UnimplementedError('Se inicializa en main');
+});
+```
+
+```dart
+// lib/main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final paypal = FlutterPaypalPayment();
+  await paypal.init(PaypalConfig(
+    clientId: 'TU_CLIENT_ID',
+    environment: PaypalEnvironment.sandbox,
+    returnUrl: 'com.example.myapp://paypalpay',
+  ));
+
+  runApp(
+    ProviderScope(
+      overrides: [paypalProvider.overrideWithValue(paypal)],
+      child: MyApp(),
+    ),
+  );
+}
+```
+
+```dart
+// En cualquier widget
+class PayScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ElevatedButton(
+      onPressed: () async {
+        final paypal = ref.read(paypalProvider);
+        final result = await paypal.pay(
+          PaymentRequest(orderId: 'ORDER_ID'),
+        );
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${f.message}')),
+          ),
+          (s) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pagado: ${s.orderId}')),
+          ),
+        );
+      },
+      child: Text('Pagar'),
+    );
+  }
+}
+```
+
+> **Nota:** `init()` configura el SDK nativo una vez. Después solo llamas los métodos de pago/vault directamente.
 
 ---
 

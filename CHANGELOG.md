@@ -1,11 +1,32 @@
-## 0.2.0
+## 0.0.1
 
-### Nuevas funcionalidades
+### Funcionalidades
+
+- **Checkout PayPal** (`pay`)
+  - Abre el checkout nativo de PayPal vía browser del sistema
+  - Requiere `orderId` creado desde tu backend (PayPal Orders API v2)
+  - Retorna `Either<PaymentFailure, PaymentSuccess>` con `orderId` y `payerId`
+
+- **Checkout PayPal sin backend** (`payDirect`)
+  - Crea la orden, abre el checkout y captura — todo desde Flutter
+  - Usa `PaypalOrderService` para llamadas REST directas (OAuth2 + Orders API)
+  - Parámetros: `amount`, `currencyCode`, `description`, etc.
+  - `autoCapture` opcional (por defecto `true`)
 
 - **Pay Later** (financiación PayPal)
-  - Nuevo enum `PaypalFundingSource` con valores `paypal` y `payLater`
+  - Enum `PaypalFundingSource` con valores `paypal` y `payLater`
   - Campo `fundingSource` en `PaymentRequest` (por defecto `paypal`)
   - Soporte nativo en Kotlin con `PayPalWebCheckoutFundingSource.PAY_LATER`
+
+- **Pago con tarjeta** (`payWithCard`, `payWithCardDirect`)
+  - Cobra tarjetas directamente sin login de PayPal
+  - Autenticación 3D Secure automática (`SCA_WHEN_REQUIRED`) o forzada (`SCA_ALWAYS`)
+  - Soporte sin backend con `payWithCardDirect()` (crea orden + procesa tarjeta + captura)
+
+- **Vault — Guardar métodos de pago**
+  - `vaultPaypal()`: Guarda una cuenta PayPal para cobros futuros
+  - `vaultCard()`: Guarda una tarjeta con soporte de 3D Secure
+  - Requiere setup token creado vía PayPal Setup Tokens API v3
 
 - **Vault sin backend** (`vaultPaypalDirect`, `vaultCardDirect`)
   - `vaultPaypalDirect()`: Crea setup token → guarda cuenta PayPal → crea payment token
@@ -20,83 +41,55 @@
   - POST `/v2/payments/captures/{id}/refund`
   - Soporte para monto parcial con `amount` y `currencyCode`
 
-- **Nuevas APIs REST en PaypalOrderService**
+- **APIs REST en PaypalOrderService**
+  - `createOrder()` — Crear orden
+  - `captureOrder()` — Capturar orden
   - `getOrderDetails()` — GET detalles de orden
   - `refundCapture()` — Reembolso total/parcial
   - `createSetupToken()` — Crear setup token (Vault v3)
   - `createPaymentToken()` — Crear payment token desde setup token
+  - `PaypalOrderService` exportado para uso directo por el desarrollador
 
-- **PaypalOrderService exportado** para uso directo por el desarrollador
+### SDK nativo
 
-### Tests
-
-- 61 tests unitarios (20 nuevos)
-- Cobertura de Pay Later, vaultPaypalDirect, vaultCardDirect, getOrderDetails, refund
-- Tests de validación de entrada: amount, currencyCode, card number (Luhn), CVV, returnUrl
-
-### Seguridad
-
-- **Mensajes de error sanitizados**: Ya no se exponen cuerpos crudos de respuestas PayPal en errores. Solo se extraen `name`, `message` y `debug_id`
-- **Cache de access tokens**: Se reutiliza el token OAuth2 hasta su expiración (con margen de 60s), evitando llamadas redundantes
-- **Validación de entrada** en entidades:
-  - `PaymentParams`: Valida formato de `amount` (decimal), `currencyCode` (ISO 4217 3 letras), `softDescriptor` (máx 22 chars)
-  - `PaymentCard`: Valida número con Luhn check, mes 01-12, año 4 dígitos, CVV 3-4 dígitos
-  - `PaypalConfig`: Valida `clientId` no vacío, `returnUrl` con formato de deep link válido
-- **Protección contra path injection**: IDs de orden/captura validados contra `^[A-Za-z0-9_-]+$` y codificados con `Uri.encodeComponent()`
-- **Limpieza de tokens en dispose()**: Se borran token cacheado y fecha de expiración al cerrar el servicio
-
----
-
-## 0.1.0
-
-### Nuevas funcionalidades
-
-- **Pago con tarjeta** (`payWithCard`, `payWithCardDirect`)
-  - Cobra tarjetas directamente sin login de PayPal
-  - Autenticación 3D Secure automática (`SCA_WHEN_REQUIRED`) o forzada (`SCA_ALWAYS`)
-  - Soporte sin backend con `payWithCardDirect()` (crea orden + procesa tarjeta + captura)
-
-- **Vault — Guardar métodos de pago**
-  - `vaultPaypal()`: Guarda una cuenta PayPal para cobros futuros
-  - `vaultCard()`: Guarda una tarjeta con soporte de 3D Secure
-  - Requiere setup token creado vía PayPal Setup Tokens API v3
-
-- **Dependencia `card-payments:2.3.0`** agregada al SDK nativo
-
-### Arquitectura
-
-- Nuevas entidades: `PaymentCard`, `CardPaymentRequest`, `CardPaymentResult`, `VaultPaypalRequest`, `VaultCardRequest`, `VaultResult`
-- Pigeon actualizado con mensajes y métodos para tarjetas y vault
-- Kotlin plugin: `CardClient` para pagos con tarjeta, vault con `PayPalWebCheckoutClient` y `CardClient`
-- Sistema de `ActiveFlow` para enrutar deep links al handler correcto (`onNewIntent`)
-
----
-
-## 0.0.1
-
-### Release inicial
-
-- **Checkout PayPal** (`pay`)
-  - Abre el checkout nativo de PayPal vía browser del sistema
-  - Requiere `orderId` creado desde tu backend (PayPal Orders API v2)
-  - Retorna `Either<PaymentFailure, PaymentSuccess>` con `orderId` y `payerId`
-
-- **Checkout PayPal sin backend** (`payDirect`)
-  - Crea la orden, abre el checkout y captura — todo desde Flutter
-  - Usa `PaypalOrderService` para llamadas REST directas (OAuth2 + Orders API)
-  - Parámetros: `amount`, `currencyCode`, `description`, etc.
-  - `autoCapture` opcional (por defecto `true`)
-
-- **SDK nativo PayPal Android v2.3.0**
+- **PayPal Android SDK v2.3.0**
   - API basada en callbacks: `start(activity, request, callback)`
   - Retorno vía deep link: `finishStart(intent)`
   - Requiere Java 17, `minSdk 23`, `compileSdk 34`
+  - Dependencias: `paypal-web-payments`, `card-payments`, `payment-buttons`
 
 - **Comunicación type-safe** con [Pigeon](https://pub.dev/packages/pigeon) v22.7.4
   - Generación automática de código Dart ↔ Kotlin
   - Mensajes tipados para configuración, requests y results
 
-- **Arquitectura limpia**
-  - Domain: entidades y contratos de repositorio
-  - Data: implementación, mappers Dart↔Pigeon, servicios REST
-  - `Either<Failure, Success>` con [dartz](https://pub.dev/packages/dartz)
+### Arquitectura
+
+- Domain: entidades y contratos de repositorio
+- Data: implementación, mappers Dart↔Pigeon, servicios REST
+- `Either<Failure, Success>` con [dartz](https://pub.dev/packages/dartz)
+- Entidades: `PaypalConfig`, `PaymentRequest`, `PaymentCard`, `CardPaymentRequest`, `CardPaymentResult`, `VaultPaypalRequest`, `VaultCardRequest`, `VaultResult`, `PaymentParams`
+- Kotlin plugin: `CardClient` para pagos con tarjeta, vault con `PayPalWebCheckoutClient` y `CardClient`
+- Sistema de `ActiveFlow` para enrutar deep links al handler correcto (`onNewIntent`)
+
+### Seguridad
+
+- **Mensajes de error sanitizados**: No se exponen cuerpos crudos de respuestas PayPal. Solo se extraen `name`, `message` y `debug_id`
+- **Cache de access tokens**: Se reutiliza el token OAuth2 hasta su expiración (con margen de 60s)
+- **Validación de entrada** en entidades:
+  - `PaymentParams`: Valida formato de `amount` (decimal), `currencyCode` (ISO 4217 3 letras), `softDescriptor` (máx 22 chars)
+  - `PaymentCard`: Valida número con Luhn check, mes 01-12, año 4 dígitos, CVV 3-4 dígitos
+  - `PaypalConfig`: Valida `clientId` no vacío, `returnUrl` con formato de deep link válido
+- **Protección contra path injection**: IDs validados contra `^[A-Za-z0-9_-]+$` y codificados con `Uri.encodeComponent()`
+- **Limpieza de tokens en dispose()**: Se borran token cacheado y fecha de expiración al cerrar el servicio
+
+### Documentación
+
+- README con guía de integración (variable global, GetIt, Riverpod)
+- Ejemplos completos de todos los flujos
+- Tabla de funcionalidades con requisitos de backend
+
+### Tests
+
+- 61 tests unitarios
+- Cobertura de todos los flujos: checkout, tarjetas, vault, Pay Later, reembolsos
+- Tests de validación de entrada: amount, currencyCode, card number (Luhn), CVV, returnUrl
