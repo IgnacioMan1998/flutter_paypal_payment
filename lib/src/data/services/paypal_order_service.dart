@@ -3,9 +3,14 @@ import 'dart:convert';
 import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../src/domain/entities/payment_params.dart';
-import '../../../src/domain/entities/payment_result.dart';
-import '../../../src/domain/entities/paypal_config.dart';
+import '../../core/constants/paypal_api_constants.dart';
+import '../../core/constants/paypal_error_codes.dart';
+import '../../core/constants/paypal_error_messages.dart';
+import '../../core/utils/paypal_utils.dart';
+import '../../core/validators/paypal_validation_rules.dart';
+import '../../domain/entities/payment_params.dart';
+import '../../domain/entities/payment_result.dart';
+import '../../domain/entities/paypal_config.dart';
 
 /// Service that creates and captures orders directly via PayPal REST API.
 /// Use this when you DON'T have a backend.
@@ -34,35 +39,16 @@ class PaypalOrderService {
   DateTime? _tokenExpiry;
 
   String get _baseUrl => _config.environment == PaypalEnvironment.sandbox
-      ? 'https://api-m.sandbox.paypal.com'
-      : 'https://api-m.paypal.com';
-
-  /// Extract a safe error message from a PayPal API response.
-  /// Never exposes the raw response body.
-  static String _safeErrorMessage(http.Response response) {
-    try {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final name = data['name'] ?? '';
-      final message = data['message'] ?? '';
-      final debugId = data['debug_id'] ?? '';
-      return 'PayPal error: $name – $message (debug_id: $debugId)';
-    } catch (_) {
-      return 'PayPal API error (HTTP ${response.statusCode})';
-    }
-  }
-
-  /// Validates that an ID contains only safe characters (alphanumeric, dash, underscore).
-  static bool _isValidId(String id) {
-    return RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id);
-  }
+      ? PaypalApiConstants.sandboxBaseUrl
+      : PaypalApiConstants.liveBaseUrl;
 
   /// Get an OAuth2 access token using client credentials.
   /// Caches the token and reuses it until near-expiry.
   Future<Either<PaymentFailure, String>> _getAccessToken() async {
-    // Return cached token if still valid (with 60s safety margin)
     if (_cachedToken != null &&
         _tokenExpiry != null &&
-        DateTime.now().isBefore(_tokenExpiry!.subtract(const Duration(seconds: 60)))) {
+        DateTime.now().isBefore(_tokenExpiry!.subtract(
+            const Duration(seconds: PaypalApiConstants.tokenExpiryMarginSeconds)))) {
       return Right(_cachedToken!);
     }
 
@@ -71,18 +57,19 @@ class PaypalOrderService {
           base64Encode(utf8.encode('${_config.clientId}:$_clientSecret'));
 
       final response = await _client.post(
-        Uri.parse('$_baseUrl/v1/oauth2/token'),
+        Uri.parse('$_baseUrl${PaypalApiConstants.oauthTokenPath}'),
         headers: {
           'Authorization': 'Basic $credentials',
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': PaypalApiConstants.contentTypeForm,
         },
-        body: 'grant_type=client_credentials',
+        body: PaypalApiConstants.grantTypeCredentials,
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final token = data['access_token'] as String;
-        final expiresIn = data['expires_in'] as int? ?? 3600;
+        final expiresIn = data['expires_in'] as int? ??
+            PaypalApiConstants.defaultTokenExpirySeconds;
 
         _cachedToken = token;
         _tokenExpiry = DateTime.now().add(Duration(seconds: expiresIn));
@@ -91,13 +78,13 @@ class PaypalOrderService {
       }
 
       return Left(PaymentFailure(
-        message: _safeErrorMessage(response),
-        code: 'AUTH_ERROR',
+        message: PaypalUtils.safeErrorMessage(response),
+        code: PaypalErrorCodes.authError,
       ));
     } catch (e) {
-      return Left(PaymentFailure(
-        message: 'Authentication failed',
-        code: 'AUTH_ERROR',
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.authFailed,
+        code: PaypalErrorCodes.authError,
       ));
     }
   }
@@ -132,15 +119,15 @@ class PaypalOrderService {
           }
 
           final body = jsonEncode({
-            'intent': 'CAPTURE',
+            'intent': PaypalApiConstants.intentCapture,
             'purchase_units': [purchaseUnit],
           });
 
           final response = await _client.post(
-            Uri.parse('$_baseUrl/v2/checkout/orders'),
+            Uri.parse('$_baseUrl${PaypalApiConstants.ordersPath}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
             body: body,
           );
@@ -151,12 +138,14 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'CREATE_ORDER_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.createOrderError,
           ));
         } catch (e) {
-          return Left(
-              PaymentFailure(message: 'Failed to create order', code: 'CREATE_ORDER_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.createOrderFailed,
+            code: PaypalErrorCodes.createOrderError,
+          ));
         }
       },
     );
@@ -165,10 +154,10 @@ class PaypalOrderService {
   /// Capture a previously approved order.
   Future<Either<PaymentFailure, Map<String, dynamic>>> captureOrder(
       String orderId) async {
-    if (!_isValidId(orderId)) {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(orderId)) {
       return const Left(PaymentFailure(
-        message: 'Invalid order ID format',
-        code: 'VALIDATION_ERROR',
+        message: PaypalErrorMessages.invalidOrderId,
+        code: PaypalErrorCodes.validationError,
       ));
     }
 
@@ -179,10 +168,11 @@ class PaypalOrderService {
       (token) async {
         try {
           final response = await _client.post(
-            Uri.parse('$_baseUrl/v2/checkout/orders/${Uri.encodeComponent(orderId)}/capture'),
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.ordersPath}/${Uri.encodeComponent(orderId)}${PaypalApiConstants.captureSubpath}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
           );
 
@@ -192,12 +182,14 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'CAPTURE_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.captureError,
           ));
         } catch (e) {
-          return Left(
-              PaymentFailure(message: 'Failed to capture order', code: 'CAPTURE_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.captureOrderFailed,
+            code: PaypalErrorCodes.captureError,
+          ));
         }
       },
     );
@@ -206,10 +198,10 @@ class PaypalOrderService {
   /// Get the details of an existing order.
   Future<Either<PaymentFailure, Map<String, dynamic>>> getOrderDetails(
       String orderId) async {
-    if (!_isValidId(orderId)) {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(orderId)) {
       return const Left(PaymentFailure(
-        message: 'Invalid order ID format',
-        code: 'VALIDATION_ERROR',
+        message: PaypalErrorMessages.invalidOrderId,
+        code: PaypalErrorCodes.validationError,
       ));
     }
 
@@ -220,10 +212,11 @@ class PaypalOrderService {
       (token) async {
         try {
           final response = await _client.get(
-            Uri.parse('$_baseUrl/v2/checkout/orders/${Uri.encodeComponent(orderId)}'),
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.ordersPath}/${Uri.encodeComponent(orderId)}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
           );
 
@@ -233,12 +226,14 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'GET_ORDER_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.getOrderError,
           ));
         } catch (e) {
-          return Left(
-              PaymentFailure(message: 'Failed to get order details', code: 'GET_ORDER_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.getOrderDetailsFailed,
+            code: PaypalErrorCodes.getOrderError,
+          ));
         }
       },
     );
@@ -253,10 +248,10 @@ class PaypalOrderService {
     String? amount,
     String? currencyCode,
   }) async {
-    if (!_isValidId(captureId)) {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(captureId)) {
       return const Left(PaymentFailure(
-        message: 'Invalid capture ID format',
-        code: 'VALIDATION_ERROR',
+        message: PaypalErrorMessages.invalidCaptureId,
+        code: PaypalErrorCodes.validationError,
       ));
     }
 
@@ -276,10 +271,10 @@ class PaypalOrderService {
 
           final response = await _client.post(
             Uri.parse(
-                '$_baseUrl/v2/payments/captures/${Uri.encodeComponent(captureId)}/refund'),
+                '$_baseUrl${PaypalApiConstants.capturesPath}/${Uri.encodeComponent(captureId)}${PaypalApiConstants.refundSubpath}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
             body: body.isNotEmpty ? jsonEncode(body) : null,
           );
@@ -290,21 +285,20 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'REFUND_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.refundError,
           ));
         } catch (e) {
-          return Left(
-              PaymentFailure(message: 'Failed to refund capture', code: 'REFUND_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.refundCaptureFailed,
+            code: PaypalErrorCodes.refundError,
+          ));
         }
       },
     );
   }
 
   /// Create a setup token for vaulting a payment method without a backend.
-  ///
-  /// [paymentSource] – e.g. `{'paypal': {'usage_type': 'MERCHANT', ...}}`
-  /// or `{'card': {'number': '...', 'expiry': '...', ...}}`.
   Future<Either<PaymentFailure, Map<String, dynamic>>> createSetupToken({
     required Map<String, dynamic> paymentSource,
     Map<String, dynamic>? customer,
@@ -323,10 +317,10 @@ class PaypalOrderService {
           }
 
           final response = await _client.post(
-            Uri.parse('$_baseUrl/v3/vault/setup-tokens'),
+            Uri.parse('$_baseUrl${PaypalApiConstants.setupTokensPath}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
             body: jsonEncode(requestBody),
           );
@@ -337,12 +331,14 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'SETUP_TOKEN_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.setupTokenError,
           ));
         } catch (e) {
-          return Left(PaymentFailure(
-              message: 'Failed to create setup token', code: 'SETUP_TOKEN_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.createSetupTokenFailed,
+            code: PaypalErrorCodes.setupTokenError,
+          ));
         }
       },
     );
@@ -361,16 +357,16 @@ class PaypalOrderService {
             'payment_source': {
               'token': {
                 'id': setupTokenId,
-                'type': 'SETUP_TOKEN',
+                'type': PaypalApiConstants.tokenTypeSetup,
               },
             },
           });
 
           final response = await _client.post(
-            Uri.parse('$_baseUrl/v3/vault/payment-tokens'),
+            Uri.parse('$_baseUrl${PaypalApiConstants.paymentTokensPath}'),
             headers: {
               'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
             },
             body: body,
           );
@@ -381,12 +377,14 @@ class PaypalOrderService {
           }
 
           return Left(PaymentFailure(
-            message: _safeErrorMessage(response),
-            code: 'PAYMENT_TOKEN_ERROR',
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.paymentTokenError,
           ));
         } catch (e) {
-          return Left(PaymentFailure(
-              message: 'Failed to create payment token', code: 'PAYMENT_TOKEN_ERROR'));
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.createPaymentTokenFailed,
+            code: PaypalErrorCodes.paymentTokenError,
+          ));
         }
       },
     );

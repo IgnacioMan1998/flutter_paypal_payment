@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../core/constants/paypal_error_messages.dart';
 import '../../domain/entities/card_payment.dart';
 import '../../domain/entities/payment_request.dart';
 import '../../domain/entities/payment_result.dart';
@@ -37,7 +38,7 @@ class PaypalRepositoryImpl implements PaypalRepository {
         ));
       }
       return Left(PaymentFailure(
-        message: result.errorMessage ?? 'Unknown error',
+        message: result.errorMessage ?? PaypalErrorMessages.unknownError,
         code: result.errorCode,
       ));
     } catch (e) {
@@ -59,7 +60,7 @@ class PaypalRepositoryImpl implements PaypalRepository {
         ));
       }
       return Left(CardPaymentFailure(
-        message: result.errorMessage ?? 'Unknown error',
+        message: result.errorMessage ?? PaypalErrorMessages.unknownError,
         code: result.errorCode,
       ));
     } catch (e) {
@@ -79,7 +80,7 @@ class PaypalRepositoryImpl implements PaypalRepository {
         ));
       }
       return Left(VaultFailure(
-        message: result.errorMessage ?? 'Unknown error',
+        message: result.errorMessage ?? PaypalErrorMessages.unknownError,
         code: result.errorCode,
       ));
     } catch (e) {
@@ -99,7 +100,7 @@ class PaypalRepositoryImpl implements PaypalRepository {
         ));
       }
       return Left(VaultFailure(
-        message: result.errorMessage ?? 'Unknown error',
+        message: result.errorMessage ?? PaypalErrorMessages.unknownError,
         code: result.errorCode,
       ));
     } catch (e) {

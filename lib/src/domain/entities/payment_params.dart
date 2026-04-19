@@ -1,3 +1,5 @@
+import '../../core/validators/paypal_validation_rules.dart';
+
 /// Parameters to create an order and process payment without a backend.
 class PaymentParams {
   PaymentParams({
@@ -8,15 +10,17 @@ class PaymentParams {
     this.invoiceId,
     this.softDescriptor,
   }) {
-    if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(amount)) {
+    if (!PaypalValidationRules.amountPattern.hasMatch(amount)) {
       throw ArgumentError('amount must be a valid decimal (e.g. "25.00")');
     }
-    if (!RegExp(r'^[A-Z]{3}$').hasMatch(currencyCode)) {
+    if (!PaypalValidationRules.currencyCodePattern.hasMatch(currencyCode)) {
       throw ArgumentError(
           'currencyCode must be a 3-letter ISO 4217 code (e.g. "USD")');
     }
-    if (softDescriptor != null && softDescriptor!.length > 22) {
-      throw ArgumentError('softDescriptor must be at most 22 characters');
+    if (softDescriptor != null &&
+        softDescriptor!.length > PaypalValidationRules.softDescriptorMaxLength) {
+      throw ArgumentError(
+          'softDescriptor must be at most ${PaypalValidationRules.softDescriptorMaxLength} characters');
     }
   }
 

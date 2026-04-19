@@ -1,3 +1,6 @@
+import '../../core/utils/paypal_utils.dart';
+import '../../core/validators/paypal_validation_rules.dart';
+
 /// A card for direct payment or vaulting.
 class PaymentCard {
   PaymentCard({
@@ -7,10 +10,10 @@ class PaymentCard {
     required this.securityCode,
     this.cardholderName,
   }) {
-    if (!RegExp(r'^\d{13,19}$').hasMatch(number)) {
+    if (!PaypalValidationRules.cardNumberPattern.hasMatch(number)) {
       throw ArgumentError('Card number must be 13-19 digits');
     }
-    if (!_luhnCheck(number)) {
+    if (!PaypalUtils.luhnCheck(number)) {
       throw ArgumentError('Invalid card number (Luhn check failed)');
     }
     final month = int.tryParse(expirationMonth);
@@ -21,24 +24,9 @@ class PaymentCard {
     if (year == null || expirationYear.length != 4) {
       throw ArgumentError('expirationYear must be a 4-digit year');
     }
-    if (!RegExp(r'^\d{3,4}$').hasMatch(securityCode)) {
+    if (!PaypalValidationRules.securityCodePattern.hasMatch(securityCode)) {
       throw ArgumentError('securityCode must be 3 or 4 digits');
     }
-  }
-
-  static bool _luhnCheck(String number) {
-    int sum = 0;
-    bool alternate = false;
-    for (int i = number.length - 1; i >= 0; i--) {
-      int digit = int.parse(number[i]);
-      if (alternate) {
-        digit *= 2;
-        if (digit > 9) digit -= 9;
-      }
-      sum += digit;
-      alternate = !alternate;
-    }
-    return sum % 10 == 0;
   }
 
   /// Card number (PAN), e.g. "4111111111111111".

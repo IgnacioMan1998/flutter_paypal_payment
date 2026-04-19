@@ -1,3 +1,5 @@
+import '../../core/validators/paypal_validation_rules.dart';
+
 /// PayPal SDK environment.
 enum PaypalEnvironment { sandbox, live }
 
@@ -12,8 +14,7 @@ class PaypalConfig {
       throw ArgumentError('clientId must not be empty');
     }
     if (returnUrl != null &&
-        !RegExp(r'^[a-zA-Z][a-zA-Z0-9.+-]*://[a-zA-Z0-9._-]+$')
-            .hasMatch(returnUrl!)) {
+        !PaypalValidationRules.returnUrlPattern.hasMatch(returnUrl!)) {
       throw ArgumentError(
           'returnUrl must be a valid deep link (e.g. "com.example.app://paypalpay")');
     }

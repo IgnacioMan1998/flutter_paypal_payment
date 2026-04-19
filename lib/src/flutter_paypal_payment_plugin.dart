@@ -1,5 +1,8 @@
 import 'package:dartz/dartz.dart';
 
+import 'core/constants/paypal_api_constants.dart';
+import 'core/constants/paypal_error_codes.dart';
+import 'core/constants/paypal_error_messages.dart';
 import 'data/repositories/paypal_repository_impl.dart';
 import 'data/services/paypal_order_service.dart';
 import 'domain/entities/card_payment.dart';
@@ -42,8 +45,8 @@ class FlutterPaypalPayment {
     final config = _config;
     if (config == null) {
       return const Left(PaymentFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
@@ -103,8 +106,8 @@ class FlutterPaypalPayment {
     final config = _config;
     if (config == null) {
       return const Left(CardPaymentFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
@@ -118,7 +121,7 @@ class FlutterPaypalPayment {
       if (orderResult.isLeft()) {
         return Left(CardPaymentFailure(
           message: (orderResult as Left<PaymentFailure, String>).value.message,
-          code: 'CREATE_ORDER_ERROR',
+          code: PaypalErrorCodes.createOrderError,
         ));
       }
       final orderId = (orderResult as Right<PaymentFailure, String>).value;
@@ -140,7 +143,7 @@ class FlutterPaypalPayment {
           message: (captureResult as Left<PaymentFailure, Map<String, dynamic>>)
               .value
               .message,
-          code: 'CAPTURE_ERROR',
+          code: PaypalErrorCodes.captureError,
         ));
       }
 
@@ -169,15 +172,15 @@ class FlutterPaypalPayment {
   Future<Either<VaultFailure, VaultSuccess>> vaultPaypalDirect({
     required String clientSecret,
     Map<String, dynamic>? customer,
-    String usageType = 'MERCHANT',
-    String customerType = 'CONSUMER',
-    String usagePattern = 'IMMEDIATE',
+    String usageType = PaypalApiConstants.defaultUsageType,
+    String customerType = PaypalApiConstants.defaultCustomerType,
+    String usagePattern = PaypalApiConstants.defaultUsagePattern,
   }) async {
     final config = _config;
     if (config == null) {
       return const Left(VaultFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
@@ -196,7 +199,7 @@ class FlutterPaypalPayment {
             'experience_context': {
               'return_url': config.returnUrl,
               'cancel_url': config.returnUrl,
-              'vault_instruction': 'ON_CREATE_PAYMENT_TOKENS',
+              'vault_instruction': PaypalApiConstants.vaultInstructionOnCreate,
             },
           },
         },
@@ -209,7 +212,7 @@ class FlutterPaypalPayment {
               (setupResult as Left<PaymentFailure, Map<String, dynamic>>)
                   .value
                   .message,
-          code: 'SETUP_TOKEN_ERROR',
+          code: PaypalErrorCodes.setupTokenError,
         ));
       }
 
@@ -235,7 +238,7 @@ class FlutterPaypalPayment {
               (paymentTokenResult as Left<PaymentFailure, Map<String, dynamic>>)
                   .value
                   .message,
-          code: 'PAYMENT_TOKEN_ERROR',
+          code: PaypalErrorCodes.paymentTokenError,
         ));
       }
 
@@ -255,8 +258,8 @@ class FlutterPaypalPayment {
     final config = _config;
     if (config == null) {
       return const Left(VaultFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
@@ -272,7 +275,7 @@ class FlutterPaypalPayment {
             'experience_context': {
               'return_url': config.returnUrl,
               'cancel_url': config.returnUrl,
-              'vault_instruction': 'ON_CREATE_PAYMENT_TOKENS',
+              'vault_instruction': PaypalApiConstants.vaultInstructionOnCreate,
             },
           },
         },
@@ -285,7 +288,7 @@ class FlutterPaypalPayment {
               (setupResult as Left<PaymentFailure, Map<String, dynamic>>)
                   .value
                   .message,
-          code: 'SETUP_TOKEN_ERROR',
+          code: PaypalErrorCodes.setupTokenError,
         ));
       }
 
@@ -311,7 +314,7 @@ class FlutterPaypalPayment {
               (paymentTokenResult as Left<PaymentFailure, Map<String, dynamic>>)
                   .value
                   .message,
-          code: 'PAYMENT_TOKEN_ERROR',
+          code: PaypalErrorCodes.paymentTokenError,
         ));
       }
 
@@ -331,8 +334,8 @@ class FlutterPaypalPayment {
     final config = _config;
     if (config == null) {
       return const Left(PaymentFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
@@ -361,8 +364,8 @@ class FlutterPaypalPayment {
     final config = _config;
     if (config == null) {
       return const Left(PaymentFailure(
-        message: 'PayPal SDK not initialized. Call init() first.',
-        code: 'NOT_INITIALIZED',
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
       ));
     }
 
