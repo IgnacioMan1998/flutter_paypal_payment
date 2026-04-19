@@ -222,8 +222,7 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
             is PayPalWebCheckoutFinishVaultResult.Success -> {
                 callback(Result.success(VaultResultMessage(
                     success = true,
-                    setupTokenId = finishResult.setupTokenId,
-                    status = finishResult.status,
+                    setupTokenId = finishResult.approvalSessionId,
                 )))
             }
             is PayPalWebCheckoutFinishVaultResult.Failure -> {
@@ -382,6 +381,7 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
             val cardRequest = CardRequest(
                 orderId = request.orderId,
                 card = card,
+                returnUrl = returnUrl ?: "",
                 sca = sca,
             )
 
