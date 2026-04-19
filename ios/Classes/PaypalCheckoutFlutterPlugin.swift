@@ -1,6 +1,6 @@
 import Flutter
-import UIKit
 import PayPal
+import UIKit
 
 public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi {
 
@@ -16,7 +16,9 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
 
     // MARK: - PaypalHostApi: initialize
 
-    func initialize(config: PaypalConfigMessage, completion: @escaping (Result<Void, Error>) -> Void) {
+    func initialize(
+        config: PaypalConfigMessage, completion: @escaping (Result<Void, Error>) -> Void
+    ) {
         let environment: Environment
         switch config.environment {
         case .sandbox:
@@ -36,13 +38,18 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
 
     // MARK: - PaypalHostApi: PayPal checkout
 
-    func startPayment(request: PaymentRequestMessage, completion: @escaping (Result<PaymentResultMessage, Error>) -> Void) {
+    func startPayment(
+        request: PaymentRequestMessage,
+        completion: @escaping (Result<PaymentResultMessage, Error>) -> Void
+    ) {
         guard let client = paypalClient else {
-            completion(.success(PaymentResultMessage(
-                success: false,
-                errorMessage: "PayPal SDK not initialized. Call initialize() first.",
-                errorCode: "NOT_INITIALIZED"
-            )))
+            completion(
+                .success(
+                    PaymentResultMessage(
+                        success: false,
+                        errorMessage: "PayPal SDK not initialized. Call initialize() first.",
+                        errorCode: "NOT_INITIALIZED"
+                    )))
             return
         }
 
@@ -54,35 +61,45 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
             fundingSource = .paypal
         }
 
-        let checkoutRequest = PayPalWebCheckoutRequest(orderID: request.orderId, fundingSource: fundingSource)
+        let checkoutRequest = PayPalWebCheckoutRequest(
+            orderID: request.orderId, fundingSource: fundingSource)
 
         client.start(request: checkoutRequest) { result in
             switch result {
             case .success(let checkoutResult):
-                completion(.success(PaymentResultMessage(
-                    success: true,
-                    orderId: checkoutResult.orderID,
-                    payerId: checkoutResult.payerID
-                )))
+                completion(
+                    .success(
+                        PaymentResultMessage(
+                            success: true,
+                            orderId: checkoutResult.orderID,
+                            payerId: checkoutResult.payerID
+                        )))
             case .failure(let error):
-                completion(.success(PaymentResultMessage(
-                    success: false,
-                    errorMessage: error.localizedDescription,
-                    errorCode: String(error.code)
-                )))
+                completion(
+                    .success(
+                        PaymentResultMessage(
+                            success: false,
+                            errorMessage: error.errorDescription ?? error.localizedDescription,
+                            errorCode: error.code.map { String($0) } ?? "UNKNOWN"
+                        )))
             }
         }
     }
 
     // MARK: - PaypalHostApi: Card payment
 
-    func startCardPayment(request: CardPaymentRequestMessage, completion: @escaping (Result<CardPaymentResultMessage, Error>) -> Void) {
+    func startCardPayment(
+        request: CardPaymentRequestMessage,
+        completion: @escaping (Result<CardPaymentResultMessage, Error>) -> Void
+    ) {
         guard let client = cardClient else {
-            completion(.success(CardPaymentResultMessage(
-                success: false,
-                errorMessage: "PayPal SDK not initialized. Call initialize() first.",
-                errorCode: "NOT_INITIALIZED"
-            )))
+            completion(
+                .success(
+                    CardPaymentResultMessage(
+                        success: false,
+                        errorMessage: "PayPal SDK not initialized. Call initialize() first.",
+                        errorCode: "NOT_INITIALIZED"
+                    )))
             return
         }
 
@@ -107,31 +124,41 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
         client.approveOrder(request: cardRequest) { result in
             switch result {
             case .success(let cardResult):
-                completion(.success(CardPaymentResultMessage(
-                    success: true,
-                    orderId: cardResult.orderID,
-                    status: cardResult.status,
-                    didAttemptThreeDSecureAuthentication: cardResult.didAttemptThreeDSecureAuthentication
-                )))
+                completion(
+                    .success(
+                        CardPaymentResultMessage(
+                            success: true,
+                            orderId: cardResult.orderID,
+                            status: cardResult.status,
+                            didAttemptThreeDSecureAuthentication: cardResult
+                                .didAttemptThreeDSecureAuthentication
+                        )))
             case .failure(let error):
-                completion(.success(CardPaymentResultMessage(
-                    success: false,
-                    errorMessage: error.localizedDescription,
-                    errorCode: String(error.code)
-                )))
+                completion(
+                    .success(
+                        CardPaymentResultMessage(
+                            success: false,
+                            errorMessage: error.errorDescription ?? error.localizedDescription,
+                            errorCode: error.code.map { String($0) } ?? "UNKNOWN"
+                        )))
             }
         }
     }
 
     // MARK: - PaypalHostApi: Vault PayPal
 
-    func startVault(request: VaultRequestMessage, completion: @escaping (Result<VaultResultMessage, Error>) -> Void) {
+    func startVault(
+        request: VaultRequestMessage,
+        completion: @escaping (Result<VaultResultMessage, Error>) -> Void
+    ) {
         guard let client = paypalClient else {
-            completion(.success(VaultResultMessage(
-                success: false,
-                errorMessage: "PayPal SDK not initialized. Call initialize() first.",
-                errorCode: "NOT_INITIALIZED"
-            )))
+            completion(
+                .success(
+                    VaultResultMessage(
+                        success: false,
+                        errorMessage: "PayPal SDK not initialized. Call initialize() first.",
+                        errorCode: "NOT_INITIALIZED"
+                    )))
             return
         }
 
@@ -140,30 +167,39 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
         client.vault(vaultRequest) { result in
             switch result {
             case .success(let vaultResult):
-                completion(.success(VaultResultMessage(
-                    success: true,
-                    setupTokenId: vaultResult.tokenID,
-                    status: vaultResult.approvalSessionID
-                )))
+                completion(
+                    .success(
+                        VaultResultMessage(
+                            success: true,
+                            setupTokenId: vaultResult.tokenID,
+                            status: vaultResult.approvalSessionID
+                        )))
             case .failure(let error):
-                completion(.success(VaultResultMessage(
-                    success: false,
-                    errorMessage: error.localizedDescription,
-                    errorCode: String(error.code)
-                )))
+                completion(
+                    .success(
+                        VaultResultMessage(
+                            success: false,
+                            errorMessage: error.errorDescription ?? error.localizedDescription,
+                            errorCode: error.code.map { String($0) } ?? "UNKNOWN"
+                        )))
             }
         }
     }
 
     // MARK: - PaypalHostApi: Vault Card
 
-    func startCardVault(request: CardVaultRequestMessage, completion: @escaping (Result<VaultResultMessage, Error>) -> Void) {
+    func startCardVault(
+        request: CardVaultRequestMessage,
+        completion: @escaping (Result<VaultResultMessage, Error>) -> Void
+    ) {
         guard let client = cardClient else {
-            completion(.success(VaultResultMessage(
-                success: false,
-                errorMessage: "PayPal SDK not initialized. Call initialize() first.",
-                errorCode: "NOT_INITIALIZED"
-            )))
+            completion(
+                .success(
+                    VaultResultMessage(
+                        success: false,
+                        errorMessage: "PayPal SDK not initialized. Call initialize() first.",
+                        errorCode: "NOT_INITIALIZED"
+                    )))
             return
         }
 
@@ -180,13 +216,22 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
         client.vault(cardVaultRequest) { result in
             switch result {
             case .success(let cardVaultResult):
-                completion(.success(VaultResultMessage(
-                    success: true,
-                    setupTokenId: cardVaultResult.setupTokenID,
-                    status: cardVaultResult.status
-                )))
+                completion(
+                    .success(
+                        VaultResultMessage(
+                            success: true,
+                            setupTokenId: cardVaultResult.setupTokenID,
+                            status: cardVaultResult.status
+                        )))
             case .failure(let error):
-                completion(.success(VaultResultMessage(
-                    success: false,
-                    errorMessage: error.localizedDescription,
-                    errorCode: String(error.code)
+                completion(
+                    .success(
+                        VaultResultMessage(
+                            success: false,
+                            errorMessage: error.errorDescription ?? error.localizedDescription,
+                            errorCode: error.code.map { String($0) } ?? "UNKNOWN"
+                        )))
+            }
+        }
+    }
+}

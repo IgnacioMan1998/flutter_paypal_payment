@@ -523,6 +523,7 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
             val cardVaultRequest = CardVaultRequest(
                 setupTokenId = request.setupTokenId,
                 card = card,
+                returnUrl = returnUrl ?: "",
             )
 
             pendingVaultCallback = callback
