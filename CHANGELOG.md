@@ -1,32 +1,6 @@
-## 0.0.3
-
-### New: Complete Subscriptions & Catalog Products API
-
-- **Catalog Products API** (4/4 endpoints)
-  - `listProducts()` — List all products with pagination
-  - `getProductDetails()` — Get a specific product's details
-  - `updateProduct()` — Update product via PATCH operations
-
-- **Billing Plans API** (7/7 endpoints)
-  - `listPlans()` — List plans with optional product filter
-  - `updatePlanPricing()` — Update pricing schemes for a plan
-
-- **Subscriptions API** (10/10 endpoints)
-  - `listSubscriptions()` — List subscriptions with filters (plan, status, dates)
-  - `updateSubscription()` — Update subscription via PATCH operations
-  - `captureSubscriptionPayment()` — Capture outstanding balance
-  - `listSubscriptionTransactions()` — List transactions for a subscription
-
-### Improvements
-
-- Comprehensive README with 21 usage examples
-- Extended example app with subscription flows
-- 177 unit tests (up from 138)
-- Better pub.dev topics for discoverability
-
 ## 0.0.2
 
-### New: Orders, Authorization, Subscriptions & Shipping
+### New: Orders, Authorization, Subscriptions & Complete Catalog/Plans API
 
 - **Orders API enhancements**
   - `authorizeOrder()` — Authorize an order (hold funds)
@@ -34,17 +8,37 @@
   - `voidAuthorization()` — Void an authorization
   - `updateOrder()` — PATCH operations on orders (shipping/tracking)
 
-- **Subscriptions API** (initial)
+- **Catalog Products API** (4/4 endpoints)
   - `createProduct()` — Create a catalog product
+  - `listProducts()` — List all products with pagination
+  - `getProductDetails()` — Get a specific product's details
+  - `updateProduct()` — Update product via PATCH operations
+
+- **Billing Plans API** (7/7 endpoints)
   - `createPlan()` — Create a billing plan
+  - `listPlans()` — List plans with optional product filter
   - `getPlanDetails()` — Get plan details
+  - `updatePlanPricing()` — Update pricing schemes for a plan
+  - Plan lifecycle via service: `updatePlan()`, `activatePlan()`, `deactivatePlan()`
+
+- **Subscriptions API** (10/10 endpoints)
   - `createSubscription()` — Create a subscription
   - `getSubscriptionDetails()` — Get subscription details
+  - `listSubscriptions()` — List subscriptions with filters (plan, status, dates)
+  - `updateSubscription()` — Update subscription via PATCH operations
   - `activateSubscription()` / `suspendSubscription()` / `cancelSubscription()`
   - `reviseSubscription()` — Change subscription plan
+  - `captureSubscriptionPayment()` — Capture outstanding balance
+  - `listSubscriptionTransactions()` — List transactions for a subscription
 
 - **PaypalSubscriptionService** — Direct REST client for subscriptions
-  - Plan lifecycle: `updatePlan()`, `activatePlan()`, `deactivatePlan()`
+
+### Improvements
+
+- Comprehensive README with 21 usage examples
+- Extended example app with subscription flows
+- 177 unit tests
+- Better pub.dev topics for discoverability
 
 ## 0.0.1
 
