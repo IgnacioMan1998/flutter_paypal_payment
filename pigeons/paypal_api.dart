@@ -7,6 +7,7 @@ import 'package:pigeon/pigeon.dart';
   kotlinOptions: KotlinOptions(
     package: 'com.flutter_paypal_payment.generated',
   ),
+  swiftOut: 'ios/Classes/generated/PaypalApi.g.swift',
 ))
 
 /// Environment for the PayPal SDK.

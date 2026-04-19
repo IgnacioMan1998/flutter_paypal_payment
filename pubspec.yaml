@@ -1,6 +1,6 @@
 name: paypal_checkout_flutter
-description: "A Flutter package for PayPal payments using Pigeon for type-safe Dart/Kotlin communication."
-version: 0.0.1
+description: "A Flutter package for PayPal payments using Pigeon for type-safe Dart/Kotlin/Swift communication."
+version: 0.0.2
 homepage: https://github.com/IgnacioMan1998/flutter_paypal_payment
 repository: https://github.com/IgnacioMan1998/flutter_paypal_payment
 issue_tracker: https://github.com/IgnacioMan1998/flutter_paypal_payment/issues
@@ -31,6 +31,13 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.flutter_paypal_payment
+        pluginClass: FlutterPaypalPaymentPlugin
+      ios:
+        pluginClass: PaypalCheckoutFlutterPlugin
 
   # To add assets to your package, add an assets section, like this:
   # assets:

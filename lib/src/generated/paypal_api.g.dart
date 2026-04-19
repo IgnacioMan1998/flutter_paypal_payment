@@ -440,7 +440,7 @@ class PaypalHostApi {
 
   /// Initialize the PayPal SDK with the given configuration.
   Future<void> initialize(PaypalConfigMessage config) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_paypal_payment.PaypalHostApi.initialize$pigeonVar_messageChannelSuffix';
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.paypal_checkout_flutter.PaypalHostApi.initialize$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -463,7 +463,7 @@ class PaypalHostApi {
 
   /// Start the PayPal checkout flow for the given order.
   Future<PaymentResultMessage> startPayment(PaymentRequestMessage request) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_paypal_payment.PaypalHostApi.startPayment$pigeonVar_messageChannelSuffix';
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.paypal_checkout_flutter.PaypalHostApi.startPayment$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -491,7 +491,7 @@ class PaypalHostApi {
 
   /// Approve an order with a card (direct card payment).
   Future<CardPaymentResultMessage> startCardPayment(CardPaymentRequestMessage request) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_paypal_payment.PaypalHostApi.startCardPayment$pigeonVar_messageChannelSuffix';
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.paypal_checkout_flutter.PaypalHostApi.startCardPayment$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -519,7 +519,7 @@ class PaypalHostApi {
 
   /// Vault a PayPal account using a setup token.
   Future<VaultResultMessage> startVault(VaultRequestMessage request) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_paypal_payment.PaypalHostApi.startVault$pigeonVar_messageChannelSuffix';
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.paypal_checkout_flutter.PaypalHostApi.startVault$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -547,7 +547,7 @@ class PaypalHostApi {
 
   /// Vault a card using a setup token.
   Future<VaultResultMessage> startCardVault(CardVaultRequestMessage request) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_paypal_payment.PaypalHostApi.startCardVault$pigeonVar_messageChannelSuffix';
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.paypal_checkout_flutter.PaypalHostApi.startCardVault$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
