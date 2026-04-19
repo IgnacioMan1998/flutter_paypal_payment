@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
 import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
-import 'package:paypal_checkout_flutter/src/data/services/paypal_order_service.dart';
 
 void main() {
   late PaypalConfig config;

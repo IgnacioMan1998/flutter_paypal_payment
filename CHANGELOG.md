@@ -1,3 +1,7 @@
+## 0.0.4
+
+- **Fix iOS build**: Changed `import CorePayments`, `import CardPayments`, `import PayPalWebPayments` to `import PayPal` — CocoaPods compiles all subspecs into a single module
+
 ## 0.0.3
 
 - Moved `PaypalEnvironment` and `PaypalFundingSource` enums to `core/enums/paypal_enums.dart`

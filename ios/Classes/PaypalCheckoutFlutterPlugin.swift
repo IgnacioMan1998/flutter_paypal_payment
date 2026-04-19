@@ -1,8 +1,6 @@
 import Flutter
 import UIKit
-import CorePayments
-import CardPayments
-import PayPalWebPayments
+import PayPal
 
 public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi {
 
