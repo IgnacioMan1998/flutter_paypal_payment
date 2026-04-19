@@ -38,6 +38,8 @@ abstract final class PaypalApiConstants {
   static const String cancelSubpath = '/cancel';
   static const String reviseSubpath = '/revise';
   static const String updatePricingSubpath = '/update-pricing-schemes';
+  static const String deactivateSubpath = '/deactivate';
+  static const String transactionsSubpath = '/transactions';
 
   // ── Vault ──────────────────────────────────────────────
   static const String tokenTypeSetup = 'SETUP_TOKEN';

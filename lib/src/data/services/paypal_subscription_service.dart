@@ -126,6 +126,150 @@ class PaypalSubscriptionService {
     );
   }
 
+  /// List catalog products.
+  ///
+  /// Optional query parameters: `page_size` (1-20), `page` (1-100000),
+  /// `total_required` (boolean).
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listProducts({
+    int? pageSize,
+    int? page,
+    bool? totalRequired,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final queryParams = <String, String>{};
+          if (pageSize != null) queryParams['page_size'] = '$pageSize';
+          if (page != null) queryParams['page'] = '$page';
+          if (totalRequired != null) {
+            queryParams['total_required'] = '$totalRequired';
+          }
+
+          final uri = Uri.parse('$_baseUrl${PaypalApiConstants.productsPath}')
+              .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+          final response = await _client.get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 200) {
+            return Right(
+                jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.listProductsError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.listProductsFailed,
+            code: PaypalErrorCodes.listProductsError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Get details of a catalog product.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getProductDetails(
+      String productId) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(productId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid product ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.get(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.productsPath}/${Uri.encodeComponent(productId)}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 200) {
+            return Right(
+                jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.getProductError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.getProductFailed,
+            code: PaypalErrorCodes.getProductError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Update a catalog product with PATCH operations.
+  ///
+  /// Patchable fields: `description`, `category`, `image_url`, `home_url`.
+  Future<Either<PaymentFailure, void>> updateProduct(
+    String productId, {
+    required List<Map<String, dynamic>> patchOperations,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(productId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid product ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.patch(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.productsPath}/${Uri.encodeComponent(productId)}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body: jsonEncode(patchOperations),
+          );
+
+          if (response.statusCode == 204) {
+            return const Right(null);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.updateProductError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.updateProductFailed,
+            code: PaypalErrorCodes.updateProductError,
+          ));
+        }
+      },
+    );
+  }
+
   // ─── Billing Plans ───
 
   /// Create a billing plan for a product.
@@ -163,6 +307,60 @@ class PaypalSubscriptionService {
           return const Left(PaymentFailure(
             message: PaypalErrorMessages.createPlanFailed,
             code: PaypalErrorCodes.createPlanError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// List billing plans.
+  ///
+  /// Optional: `productId` to filter by product, `pageSize` (1-20),
+  /// `page` (1-100000), `totalRequired`.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listPlans({
+    String? productId,
+    int? pageSize,
+    int? page,
+    bool? totalRequired,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final queryParams = <String, String>{};
+          if (productId != null) queryParams['product_id'] = productId;
+          if (pageSize != null) queryParams['page_size'] = '$pageSize';
+          if (page != null) queryParams['page'] = '$page';
+          if (totalRequired != null) {
+            queryParams['total_required'] = '$totalRequired';
+          }
+
+          final uri = Uri.parse('$_baseUrl${PaypalApiConstants.plansPath}')
+              .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+          final response = await _client.get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 200) {
+            return Right(
+                jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.listPlansError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.listPlansFailed,
+            code: PaypalErrorCodes.listPlansError,
           ));
         }
       },
@@ -265,7 +463,56 @@ class PaypalSubscriptionService {
 
   /// Deactivate a billing plan.
   Future<Either<PaymentFailure, void>> deactivatePlan(String planId) =>
-      _planAction(planId, '/deactivate');
+      _planAction(planId, PaypalApiConstants.deactivateSubpath);
+
+  /// Update pricing schemes for a billing plan.
+  ///
+  /// [pricingSchemes] must contain an array of pricing schemes
+  /// with `billing_cycle_sequence` and `pricing_scheme` for each.
+  Future<Either<PaymentFailure, void>> updatePlanPricing(
+    String planId, {
+    required List<Map<String, dynamic>> pricingSchemes,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(planId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid plan ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.plansPath}/${Uri.encodeComponent(planId)}${PaypalApiConstants.updatePricingSubpath}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body: jsonEncode({'pricing_schemes': pricingSchemes}),
+          );
+
+          if (response.statusCode == 204) {
+            return const Right(null);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.updatePricingError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.updatePricingFailed,
+            code: PaypalErrorCodes.updatePricingError,
+          ));
+        }
+      },
+    );
+  }
 
   Future<Either<PaymentFailure, void>> _planAction(
       String planId, String action) async {
@@ -310,6 +557,69 @@ class PaypalSubscriptionService {
   }
 
   // ─── Subscriptions ───
+
+  /// List subscriptions.
+  ///
+  /// Optional: `planIds`, `statuses`, `createdAfter`, `createdBefore`,
+  /// `pageSize` (1-20), `page`.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listSubscriptions({
+    String? planIds,
+    String? statuses,
+    String? createdAfter,
+    String? createdBefore,
+    int? pageSize,
+    int? page,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final queryParams = <String, String>{};
+          if (planIds != null) queryParams['plan_ids'] = planIds;
+          if (statuses != null) queryParams['statuses'] = statuses;
+          if (createdAfter != null) {
+            queryParams['created_after'] = createdAfter;
+          }
+          if (createdBefore != null) {
+            queryParams['created_before'] = createdBefore;
+          }
+          if (pageSize != null) queryParams['page_size'] = '$pageSize';
+          if (page != null) queryParams['page'] = '$page';
+
+          final uri =
+              Uri.parse('$_baseUrl${PaypalApiConstants.subscriptionsPath}')
+                  .replace(
+                      queryParameters:
+                          queryParams.isNotEmpty ? queryParams : null);
+
+          final response = await _client.get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 200) {
+            return Right(
+                jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.listSubscriptionsError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.listSubscriptionsFailed,
+            code: PaypalErrorCodes.listSubscriptionsError,
+          ));
+        }
+      },
+    );
+  }
 
   /// Create a subscription for a billing plan.
   ///
@@ -390,6 +700,166 @@ class PaypalSubscriptionService {
           return const Left(PaymentFailure(
             message: PaypalErrorMessages.getSubscriptionFailed,
             code: PaypalErrorCodes.getSubscriptionError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Update a subscription with PATCH operations.
+  ///
+  /// Patchable fields include: `billing_info.outstanding_balance`,
+  /// `custom_id`, `plan.billing_cycles`, `plan.payment_preferences`, etc.
+  Future<Either<PaymentFailure, void>> updateSubscription(
+    String subscriptionId, {
+    required List<Map<String, dynamic>> patchOperations,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(subscriptionId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid subscription ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.patch(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body: jsonEncode(patchOperations),
+          );
+
+          if (response.statusCode == 204) {
+            return const Right(null);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.updateSubscriptionError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.updateSubscriptionFailed,
+            code: PaypalErrorCodes.updateSubscriptionError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Capture an authorized payment on a subscription.
+  ///
+  /// [captureRequest] must contain `note`, `capture_type` ("OUTSTANDING_BALANCE"),
+  /// and `amount` (with `currency_code` and `value`).
+  Future<Either<PaymentFailure, Map<String, dynamic>>>
+      captureSubscriptionPayment(
+    String subscriptionId, {
+    required Map<String, dynamic> captureRequest,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(subscriptionId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid subscription ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}${PaypalApiConstants.captureSubpath}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body: jsonEncode(captureRequest),
+          );
+
+          if (response.statusCode == 202) {
+            // 202 Accepted — may have empty body
+            if (response.body.isNotEmpty) {
+              return Right(
+                  jsonDecode(response.body) as Map<String, dynamic>);
+            }
+            return const Right(<String, dynamic>{});
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.captureSubscriptionError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.captureSubscriptionFailed,
+            code: PaypalErrorCodes.captureSubscriptionError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// List transactions for a subscription.
+  ///
+  /// Both [startTime] and [endTime] are required in ISO 8601 format.
+  Future<Either<PaymentFailure, Map<String, dynamic>>>
+      listSubscriptionTransactions(
+    String subscriptionId, {
+    required String startTime,
+    required String endTime,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(subscriptionId)) {
+      return const Left(PaymentFailure(
+        message: 'Invalid subscription ID format',
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final uri = Uri.parse(
+                  '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}${PaypalApiConstants.transactionsSubpath}')
+              .replace(queryParameters: {
+            'start_time': startTime,
+            'end_time': endTime,
+          });
+
+          final response = await _client.get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 200) {
+            return Right(
+                jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.listTransactionsError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.listTransactionsFailed,
+            code: PaypalErrorCodes.listTransactionsError,
           ));
         }
       },

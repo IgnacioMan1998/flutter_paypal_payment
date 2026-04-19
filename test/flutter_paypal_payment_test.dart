@@ -996,4 +996,263 @@ void main() {
           throwsArgumentError);
     });
   });
+
+  // ═══════════════════════════════════════════════════════
+  // updateOrder() NOT_INITIALIZED guard
+  // ═══════════════════════════════════════════════════════
+
+  group('updateOrder()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.updateOrder(
+        clientSecret: 'secret',
+        orderId: 'ORDER-123',
+        patchOperations: [
+          {'op': 'replace', 'path': '/intent', 'value': 'CAPTURE'}
+        ],
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // Subscription methods NOT_INITIALIZED guards
+  // ═══════════════════════════════════════════════════════
+
+  group('Subscription methods NOT_INITIALIZED guards', () {
+    test('createProduct returns NOT_INITIALIZED', () async {
+      final result = await paypal.createProduct(
+        clientSecret: 'secret',
+        product: {'name': 'Test', 'type': 'SERVICE'},
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('createPlan returns NOT_INITIALIZED', () async {
+      final result = await paypal.createPlan(
+        clientSecret: 'secret',
+        plan: {'product_id': 'P-123', 'name': 'Plan'},
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('getPlanDetails returns NOT_INITIALIZED', () async {
+      final result = await paypal.getPlanDetails(
+        clientSecret: 'secret',
+        planId: 'P-123',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('createSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.createSubscription(
+        clientSecret: 'secret',
+        subscription: {'plan_id': 'P-123'},
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('getSubscriptionDetails returns NOT_INITIALIZED', () async {
+      final result = await paypal.getSubscriptionDetails(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('activateSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.activateSubscription(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('suspendSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.suspendSubscription(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        reason: 'test',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('cancelSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.cancelSubscription(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        reason: 'test',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('reviseSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.reviseSubscription(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        revisionDetails: {'plan_id': 'P-NEW'},
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('listProducts returns NOT_INITIALIZED', () async {
+      final result = await paypal.listProducts(clientSecret: 'secret');
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('getProductDetails returns NOT_INITIALIZED', () async {
+      final result = await paypal.getProductDetails(
+        clientSecret: 'secret',
+        productId: 'PROD-123',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('updateProduct returns NOT_INITIALIZED', () async {
+      final result = await paypal.updateProduct(
+        clientSecret: 'secret',
+        productId: 'PROD-123',
+        patchOperations: [
+          {'op': 'replace', 'path': '/description', 'value': 'new'}
+        ],
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('listPlans returns NOT_INITIALIZED', () async {
+      final result = await paypal.listPlans(clientSecret: 'secret');
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('updatePlanPricing returns NOT_INITIALIZED', () async {
+      final result = await paypal.updatePlanPricing(
+        clientSecret: 'secret',
+        planId: 'P-123',
+        pricingSchemes: [
+          {
+            'billing_cycle_sequence': 1,
+            'pricing_scheme': {
+              'fixed_price': {'value': '10', 'currency_code': 'USD'}
+            }
+          }
+        ],
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('listSubscriptions returns NOT_INITIALIZED', () async {
+      final result = await paypal.listSubscriptions(clientSecret: 'secret');
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('updateSubscription returns NOT_INITIALIZED', () async {
+      final result = await paypal.updateSubscription(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        patchOperations: [
+          {'op': 'replace', 'path': '/custom_id', 'value': 'new-id'}
+        ],
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('captureSubscriptionPayment returns NOT_INITIALIZED', () async {
+      final result = await paypal.captureSubscriptionPayment(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        captureRequest: {
+          'note': 'test',
+          'capture_type': 'OUTSTANDING_BALANCE',
+          'amount': {'currency_code': 'USD', 'value': '10'}
+        },
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+
+    test('listSubscriptionTransactions returns NOT_INITIALIZED', () async {
+      final result = await paypal.listSubscriptionTransactions(
+        clientSecret: 'secret',
+        subscriptionId: 'I-SUB123',
+        startTime: '2024-01-01T00:00:00Z',
+        endTime: '2024-12-31T23:59:59Z',
+      );
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
 }

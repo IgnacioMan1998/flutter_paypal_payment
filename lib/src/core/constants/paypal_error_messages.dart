@@ -27,6 +27,18 @@ abstract final class PaypalErrorMessages {
       'Failed to get subscription details';
   static const String subscriptionActionFailed =
       'Failed to perform subscription action';
+  static const String listProductsFailed = 'Failed to list products';
+  static const String getProductFailed = 'Failed to get product details';
+  static const String updateProductFailed = 'Failed to update product';
+  static const String listPlansFailed = 'Failed to list plans';
+  static const String updatePricingFailed =
+      'Failed to update plan pricing schemes';
+  static const String listSubscriptionsFailed = 'Failed to list subscriptions';
+  static const String updateSubscriptionFailed = 'Failed to update subscription';
+  static const String captureSubscriptionFailed =
+      'Failed to capture subscription payment';
+  static const String listTransactionsFailed =
+      'Failed to list subscription transactions';
   static const String invalidOrderId = 'Invalid order ID format';
   static const String invalidCaptureId = 'Invalid capture ID format';
   static const String invalidAuthorizationId =

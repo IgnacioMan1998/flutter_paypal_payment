@@ -21,6 +21,15 @@ abstract final class PaypalErrorCodes {
   static const String createSubscriptionError = 'CREATE_SUBSCRIPTION_ERROR';
   static const String getSubscriptionError = 'GET_SUBSCRIPTION_ERROR';
   static const String subscriptionActionError = 'SUBSCRIPTION_ACTION_ERROR';
+  static const String listProductsError = 'LIST_PRODUCTS_ERROR';
+  static const String getProductError = 'GET_PRODUCT_ERROR';
+  static const String updateProductError = 'UPDATE_PRODUCT_ERROR';
+  static const String listPlansError = 'LIST_PLANS_ERROR';
+  static const String updatePricingError = 'UPDATE_PRICING_ERROR';
+  static const String listSubscriptionsError = 'LIST_SUBSCRIPTIONS_ERROR';
+  static const String updateSubscriptionError = 'UPDATE_SUBSCRIPTION_ERROR';
+  static const String captureSubscriptionError = 'CAPTURE_SUBSCRIPTION_ERROR';
+  static const String listTransactionsError = 'LIST_TRANSACTIONS_ERROR';
   static const String validationError = 'VALIDATION_ERROR';
   static const String unknownError = 'UNKNOWN_ERROR';
 }

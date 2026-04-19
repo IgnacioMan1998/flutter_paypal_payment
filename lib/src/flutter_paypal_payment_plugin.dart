@@ -549,6 +549,89 @@ class FlutterPaypalPayment {
     }
   }
 
+  /// List catalog products.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listProducts({
+    required String clientSecret,
+    int? pageSize,
+    int? page,
+    bool? totalRequired,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.listProducts(
+        pageSize: pageSize,
+        page: page,
+        totalRequired: totalRequired,
+      );
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// Get details of a catalog product.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getProductDetails({
+    required String clientSecret,
+    required String productId,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.getProductDetails(productId);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// Update a catalog product with PATCH operations.
+  Future<Either<PaymentFailure, void>> updateProduct({
+    required String clientSecret,
+    required String productId,
+    required List<Map<String, dynamic>> patchOperations,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.updateProduct(productId,
+          patchOperations: patchOperations);
+    } finally {
+      service.dispose();
+    }
+  }
+
   /// Create a billing plan for a product (requires clientSecret).
   Future<Either<PaymentFailure, Map<String, dynamic>>> createPlan({
     required String clientSecret,
@@ -594,6 +677,66 @@ class FlutterPaypalPayment {
 
     try {
       return await service.getPlanDetails(planId);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// List billing plans.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listPlans({
+    required String clientSecret,
+    String? productId,
+    int? pageSize,
+    int? page,
+    bool? totalRequired,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.listPlans(
+        productId: productId,
+        pageSize: pageSize,
+        page: page,
+        totalRequired: totalRequired,
+      );
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// Update pricing schemes for a billing plan.
+  Future<Either<PaymentFailure, void>> updatePlanPricing({
+    required String clientSecret,
+    required String planId,
+    required List<Map<String, dynamic>> pricingSchemes,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.updatePlanPricing(planId,
+          pricingSchemes: pricingSchemes);
     } finally {
       service.dispose();
     }
@@ -645,6 +788,130 @@ class FlutterPaypalPayment {
 
     try {
       return await service.getSubscriptionDetails(subscriptionId);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// List subscriptions.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> listSubscriptions({
+    required String clientSecret,
+    String? planIds,
+    String? statuses,
+    String? createdAfter,
+    String? createdBefore,
+    int? pageSize,
+    int? page,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.listSubscriptions(
+        planIds: planIds,
+        statuses: statuses,
+        createdAfter: createdAfter,
+        createdBefore: createdBefore,
+        pageSize: pageSize,
+        page: page,
+      );
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// Update a subscription with PATCH operations.
+  Future<Either<PaymentFailure, void>> updateSubscription({
+    required String clientSecret,
+    required String subscriptionId,
+    required List<Map<String, dynamic>> patchOperations,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.updateSubscription(subscriptionId,
+          patchOperations: patchOperations);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// Capture an authorized payment on a subscription.
+  Future<Either<PaymentFailure, Map<String, dynamic>>>
+      captureSubscriptionPayment({
+    required String clientSecret,
+    required String subscriptionId,
+    required Map<String, dynamic> captureRequest,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.captureSubscriptionPayment(subscriptionId,
+          captureRequest: captureRequest);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  /// List transactions for a subscription.
+  Future<Either<PaymentFailure, Map<String, dynamic>>>
+      listSubscriptionTransactions({
+    required String clientSecret,
+    required String subscriptionId,
+    required String startTime,
+    required String endTime,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final service = PaypalSubscriptionService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await service.listSubscriptionTransactions(
+        subscriptionId,
+        startTime: startTime,
+        endTime: endTime,
+      );
     } finally {
       service.dispose();
     }
