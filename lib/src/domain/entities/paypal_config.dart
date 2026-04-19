@@ -1,7 +1,5 @@
+import '../../core/enums/paypal_enums.dart';
 import '../../core/validators/paypal_validation_rules.dart';
-
-/// PayPal SDK environment.
-enum PaypalEnvironment { sandbox, live }
 
 /// Configuration needed to initialize the PayPal SDK.
 class PaypalConfig {

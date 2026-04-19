@@ -1,11 +1,4 @@
-/// Funding source for a PayPal web checkout payment.
-enum PaypalFundingSource {
-  /// Standard PayPal checkout.
-  paypal,
-
-  /// Pay Later (e.g. Pay in 4, Pagar en 3 plazos).
-  payLater,
-}
+import '../../core/enums/paypal_enums.dart';
 
 /// A request to process a PayPal payment.
 class PaymentRequest {

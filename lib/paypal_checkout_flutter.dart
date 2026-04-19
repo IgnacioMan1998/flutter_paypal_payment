@@ -3,6 +3,7 @@ library;
 export 'src/core/constants/paypal_api_constants.dart';
 export 'src/core/constants/paypal_error_codes.dart';
 export 'src/core/constants/paypal_error_messages.dart';
+export 'src/core/enums/paypal_enums.dart';
 export 'src/core/utils/paypal_utils.dart';
 export 'src/core/validators/paypal_validation_rules.dart';
 export 'src/data/services/paypal_order_service.dart';

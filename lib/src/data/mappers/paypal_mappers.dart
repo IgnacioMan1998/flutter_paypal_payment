@@ -1,31 +1,32 @@
+import '../../core/enums/paypal_enums.dart';
 import '../../domain/entities/card_payment.dart';
 import '../../domain/entities/payment_card.dart';
 import '../../domain/entities/payment_request.dart';
-import '../../domain/entities/paypal_config.dart' as domain;
+import '../../domain/entities/paypal_config.dart';
 import '../../domain/entities/vault.dart';
-import '../../generated/paypal_api.g.dart';
+import '../../generated/paypal_api.g.dart' as pigeon;
 
-extension PaypalConfigMapper on domain.PaypalConfig {
-  PaypalConfigMessage toMessage() => PaypalConfigMessage(
+extension PaypalConfigMapper on PaypalConfig {
+  pigeon.PaypalConfigMessage toMessage() => pigeon.PaypalConfigMessage(
         clientId: clientId,
-        environment: environment == domain.PaypalEnvironment.sandbox
-            ? PaypalEnvironment.sandbox
-            : PaypalEnvironment.live,
+        environment: environment == PaypalEnvironment.sandbox
+            ? pigeon.PaypalEnvironment.sandbox
+            : pigeon.PaypalEnvironment.live,
         returnUrl: returnUrl,
       );
 }
 
 extension PaymentRequestMapper on PaymentRequest {
-  PaymentRequestMessage toMessage() => PaymentRequestMessage(
+  pigeon.PaymentRequestMessage toMessage() => pigeon.PaymentRequestMessage(
         orderId: orderId,
         fundingSource: fundingSource == PaypalFundingSource.payLater
-            ? FundingSourceMessage.payLater
-            : FundingSourceMessage.paypal,
+            ? pigeon.FundingSourceMessage.payLater
+            : pigeon.FundingSourceMessage.paypal,
       );
 }
 
 extension PaymentCardMapper on PaymentCard {
-  CardMessage toMessage() => CardMessage(
+  pigeon.CardMessage toMessage() => pigeon.CardMessage(
         number: number,
         expirationMonth: expirationMonth,
         expirationYear: expirationYear,
@@ -35,7 +36,7 @@ extension PaymentCardMapper on PaymentCard {
 }
 
 extension CardPaymentRequestMapper on CardPaymentRequest {
-  CardPaymentRequestMessage toMessage() => CardPaymentRequestMessage(
+  pigeon.CardPaymentRequestMessage toMessage() => pigeon.CardPaymentRequestMessage(
         orderId: orderId,
         card: card.toMessage(),
         sca: sca,
@@ -43,13 +44,13 @@ extension CardPaymentRequestMapper on CardPaymentRequest {
 }
 
 extension VaultPaypalRequestMapper on VaultPaypalRequest {
-  VaultRequestMessage toMessage() => VaultRequestMessage(
+  pigeon.VaultRequestMessage toMessage() => pigeon.VaultRequestMessage(
         setupTokenId: setupTokenId,
       );
 }
 
 extension VaultCardRequestMapper on VaultCardRequest {
-  CardVaultRequestMessage toMessage() => CardVaultRequestMessage(
+  pigeon.CardVaultRequestMessage toMessage() => pigeon.CardVaultRequestMessage(
         setupTokenId: setupTokenId,
         card: card.toMessage(),
       );
