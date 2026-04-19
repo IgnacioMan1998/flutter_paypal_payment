@@ -1,3 +1,11 @@
+## 0.0.3
+
+- Moved `PaypalEnvironment` and `PaypalFundingSource` enums to `core/enums/paypal_enums.dart`
+- Shortened package description for pub.dev compliance
+- Added Ko-fi support link to README
+- Added `.github/FUNDING.yml` for GitHub Sponsors button
+- Made repository public for pub.dev score
+
 ## 0.0.2
 
 ### New: Orders, Authorization, Subscriptions & Complete Catalog/Plans API
