@@ -909,4 +909,91 @@ void main() {
           contains(PaypalFundingSource.payLater));
     });
   });
+
+  // ═══════════════════════════════════════════════════════
+  // authorizeOrder() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('authorizeOrder()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.authorizeOrder(
+        clientSecret: 'secret',
+        orderId: 'ORDER-123',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // captureAuthorization() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('captureAuthorization()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.captureAuthorization(
+        clientSecret: 'secret',
+        authorizationId: 'AUTH-123',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // voidAuthorization() tests
+  // ═══════════════════════════════════════════════════════
+
+  group('voidAuthorization()', () {
+    test('returns NOT_INITIALIZED when init() not called', () async {
+      final result = await paypal.voidAuthorization(
+        clientSecret: 'secret',
+        authorizationId: 'AUTH-123',
+      );
+
+      expect(result.isLeft(), true);
+      result.fold(
+        (f) => expect(f.code, 'NOT_INITIALIZED'),
+        (_) => fail('Expected Left'),
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // PaymentParams intent tests
+  // ═══════════════════════════════════════════════════════
+
+  group('PaymentParams intent', () {
+    test('defaults to CAPTURE intent', () {
+      final p = PaymentParams(amount: '10.00', currencyCode: 'USD');
+      expect(p.intent, 'CAPTURE');
+    });
+
+    test('accepts AUTHORIZE intent', () {
+      final p = PaymentParams(
+        amount: '10.00',
+        currencyCode: 'USD',
+        intent: 'AUTHORIZE',
+      );
+      expect(p.intent, 'AUTHORIZE');
+    });
+
+    test('rejects invalid intent', () {
+      expect(
+          () => PaymentParams(
+                amount: '10.00',
+                currencyCode: 'USD',
+                intent: 'INVALID',
+              ),
+          throwsArgumentError);
+    });
+  });
 }

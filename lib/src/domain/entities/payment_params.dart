@@ -1,3 +1,4 @@
+import '../../core/constants/paypal_api_constants.dart';
 import '../../core/validators/paypal_validation_rules.dart';
 
 /// Parameters to create an order and process payment without a backend.
@@ -5,6 +6,7 @@ class PaymentParams {
   PaymentParams({
     required this.amount,
     required this.currencyCode,
+    this.intent = PaypalApiConstants.intentCapture,
     this.description,
     this.customId,
     this.invoiceId,
@@ -22,6 +24,10 @@ class PaymentParams {
       throw ArgumentError(
           'softDescriptor must be at most ${PaypalValidationRules.softDescriptorMaxLength} characters');
     }
+    if (intent != PaypalApiConstants.intentCapture &&
+        intent != PaypalApiConstants.intentAuthorize) {
+      throw ArgumentError('intent must be "CAPTURE" or "AUTHORIZE"');
+    }
   }
 
   /// Amount to charge (e.g., "25.00").
@@ -29,6 +35,9 @@ class PaymentParams {
 
   /// ISO 4217 currency code (e.g., "USD", "EUR", "MXN").
   final String currencyCode;
+
+  /// Order intent: "CAPTURE" (default) or "AUTHORIZE".
+  final String intent;
 
   /// Description shown to the buyer.
   final String? description;

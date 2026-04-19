@@ -13,7 +13,23 @@ abstract final class PaypalErrorMessages {
   static const String createSetupTokenFailed = 'Failed to create setup token';
   static const String createPaymentTokenFailed =
       'Failed to create payment token';
+  static const String authorizeOrderFailed = 'Failed to authorize order';
+  static const String captureAuthorizationFailed =
+      'Failed to capture authorization';
+  static const String voidAuthorizationFailed = 'Failed to void authorization';
+  static const String updateOrderFailed = 'Failed to update order';
+  static const String createProductFailed = 'Failed to create product';
+  static const String createPlanFailed = 'Failed to create plan';
+  static const String getPlanFailed = 'Failed to get plan details';
+  static const String updatePlanFailed = 'Failed to update plan';
+  static const String createSubscriptionFailed = 'Failed to create subscription';
+  static const String getSubscriptionFailed =
+      'Failed to get subscription details';
+  static const String subscriptionActionFailed =
+      'Failed to perform subscription action';
   static const String invalidOrderId = 'Invalid order ID format';
   static const String invalidCaptureId = 'Invalid capture ID format';
+  static const String invalidAuthorizationId =
+      'Invalid authorization ID format';
   static const String unknownError = 'Unknown error';
 }

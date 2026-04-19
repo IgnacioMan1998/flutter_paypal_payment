@@ -119,7 +119,7 @@ class PaypalOrderService {
           }
 
           final body = jsonEncode({
-            'intent': PaypalApiConstants.intentCapture,
+            'intent': params.intent,
             'purchase_units': [purchaseUnit],
           });
 
@@ -145,6 +145,71 @@ class PaypalOrderService {
           return const Left(PaymentFailure(
             message: PaypalErrorMessages.createOrderFailed,
             code: PaypalErrorCodes.createOrderError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Update an order with PATCH operations (e.g., shipping info, amount).
+  ///
+  /// [orderId] – the order to update.
+  /// [patchOperations] – a list of JSON Patch operations, e.g.:
+  /// ```dart
+  /// [
+  ///   {
+  ///     'op': 'add',
+  ///     'path': '/purchase_units/@reference_id==\'default\'/shipping/address',
+  ///     'value': {
+  ///       'address_line_1': '123 Main St',
+  ///       'admin_area_2': 'San Jose',
+  ///       'admin_area_1': 'CA',
+  ///       'postal_code': '95131',
+  ///       'country_code': 'US',
+  ///     },
+  ///   },
+  /// ]
+  /// ```
+  Future<Either<PaymentFailure, void>> updateOrder(
+    String orderId, {
+    required List<Map<String, dynamic>> patchOperations,
+  }) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(orderId)) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.invalidOrderId,
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.patch(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.ordersPath}/${Uri.encodeComponent(orderId)}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body: jsonEncode(patchOperations),
+          );
+
+          // PayPal returns 204 No Content on successful PATCH
+          if (response.statusCode == 204) {
+            return const Right(null);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.updateOrderError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.updateOrderFailed,
+            code: PaypalErrorCodes.updateOrderError,
           ));
         }
       },
@@ -384,6 +449,138 @@ class PaypalOrderService {
           return const Left(PaymentFailure(
             message: PaypalErrorMessages.createPaymentTokenFailed,
             code: PaypalErrorCodes.paymentTokenError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Authorize a previously approved order (for AUTHORIZE intent).
+  Future<Either<PaymentFailure, Map<String, dynamic>>> authorizeOrder(
+      String orderId) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(orderId)) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.invalidOrderId,
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.ordersPath}/${Uri.encodeComponent(orderId)}${PaypalApiConstants.authorizeSubpath}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 201) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.authorizeError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.authorizeOrderFailed,
+            code: PaypalErrorCodes.authorizeError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Capture a previously authorized payment.
+  Future<Either<PaymentFailure, Map<String, dynamic>>> captureAuthorization(
+      String authorizationId) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(authorizationId)) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.invalidAuthorizationId,
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.authorizationsPath}/${Uri.encodeComponent(authorizationId)}${PaypalApiConstants.captureSubpath}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          if (response.statusCode == 201) {
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            return Right(data);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.captureAuthorizationError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.captureAuthorizationFailed,
+            code: PaypalErrorCodes.captureAuthorizationError,
+          ));
+        }
+      },
+    );
+  }
+
+  /// Void a previously authorized payment (cancel without capturing).
+  Future<Either<PaymentFailure, Map<String, dynamic>>> voidAuthorization(
+      String authorizationId) async {
+    if (!PaypalValidationRules.safeIdPattern.hasMatch(authorizationId)) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.invalidAuthorizationId,
+        code: PaypalErrorCodes.validationError,
+      ));
+    }
+
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final response = await _client.post(
+            Uri.parse(
+                '$_baseUrl${PaypalApiConstants.authorizationsPath}/${Uri.encodeComponent(authorizationId)}${PaypalApiConstants.voidSubpath}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+          );
+
+          // PayPal returns 204 No Content on successful void
+          if (response.statusCode == 204) {
+            return const Right(<String, dynamic>{'status': 'VOIDED'});
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: PaypalErrorCodes.voidAuthorizationError,
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: PaypalErrorMessages.voidAuthorizationFailed,
+            code: PaypalErrorCodes.voidAuthorizationError,
           ));
         }
       },

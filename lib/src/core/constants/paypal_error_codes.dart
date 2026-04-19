@@ -10,6 +10,17 @@ abstract final class PaypalErrorCodes {
   static const String refundError = 'REFUND_ERROR';
   static const String setupTokenError = 'SETUP_TOKEN_ERROR';
   static const String paymentTokenError = 'PAYMENT_TOKEN_ERROR';
+  static const String authorizeError = 'AUTHORIZE_ERROR';
+  static const String captureAuthorizationError = 'CAPTURE_AUTHORIZATION_ERROR';
+  static const String voidAuthorizationError = 'VOID_AUTHORIZATION_ERROR';
+  static const String updateOrderError = 'UPDATE_ORDER_ERROR';
+  static const String createProductError = 'CREATE_PRODUCT_ERROR';
+  static const String createPlanError = 'CREATE_PLAN_ERROR';
+  static const String getPlanError = 'GET_PLAN_ERROR';
+  static const String updatePlanError = 'UPDATE_PLAN_ERROR';
+  static const String createSubscriptionError = 'CREATE_SUBSCRIPTION_ERROR';
+  static const String getSubscriptionError = 'GET_SUBSCRIPTION_ERROR';
+  static const String subscriptionActionError = 'SUBSCRIPTION_ACTION_ERROR';
   static const String validationError = 'VALIDATION_ERROR';
   static const String unknownError = 'UNKNOWN_ERROR';
 }

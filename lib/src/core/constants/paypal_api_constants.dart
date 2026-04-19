@@ -22,6 +22,22 @@ abstract final class PaypalApiConstants {
 
   // ── Order Intent ───────────────────────────────────────
   static const String intentCapture = 'CAPTURE';
+  static const String intentAuthorize = 'AUTHORIZE';
+
+  // ── Authorization Paths ────────────────────────────────
+  static const String authorizeSubpath = '/authorize';
+  static const String authorizationsPath = '/v2/payments/authorizations';
+  static const String voidSubpath = '/void';
+
+  // ── Subscription & Catalog Paths ───────────────────────
+  static const String productsPath = '/v1/catalogs/products';
+  static const String plansPath = '/v1/billing/plans';
+  static const String subscriptionsPath = '/v1/billing/subscriptions';
+  static const String activateSubpath = '/activate';
+  static const String suspendSubpath = '/suspend';
+  static const String cancelSubpath = '/cancel';
+  static const String reviseSubpath = '/revise';
+  static const String updatePricingSubpath = '/update-pricing-schemes';
 
   // ── Vault ──────────────────────────────────────────────
   static const String tokenTypeSetup = 'SETUP_TOKEN';
