@@ -596,6 +596,12 @@ result.fold(
 );
 ```
 
+## Support
+
+If this package helps you, consider supporting its development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ignaciomanchu)
+
 ## License
 
 BSD-3-Clause — See [LICENSE](LICENSE) for details.
