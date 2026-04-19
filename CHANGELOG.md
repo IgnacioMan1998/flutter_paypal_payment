@@ -1,3 +1,40 @@
+## 0.2.0
+
+### Nuevas funcionalidades
+
+- **Pay Later** (financiación PayPal)
+  - Nuevo enum `PaypalFundingSource` con valores `paypal` y `payLater`
+  - Campo `fundingSource` en `PaymentRequest` (por defecto `paypal`)
+  - Soporte nativo en Kotlin con `PayPalWebCheckoutFundingSource.PAY_LATER`
+
+- **Vault sin backend** (`vaultPaypalDirect`, `vaultCardDirect`)
+  - `vaultPaypalDirect()`: Crea setup token → guarda cuenta PayPal → crea payment token
+  - `vaultCardDirect()`: Crea setup token → guarda tarjeta → crea payment token
+  - Todo desde Flutter sin necesidad de servidor propio
+
+- **Consultar orden** (`getOrderDetails`)
+  - Obtiene estado y detalles de una orden via GET `/v2/checkout/orders/{id}`
+
+- **Reembolsos** (`refund`)
+  - Reembolso total o parcial de un pago capturado
+  - POST `/v2/payments/captures/{id}/refund`
+  - Soporte para monto parcial con `amount` y `currencyCode`
+
+- **Nuevas APIs REST en PaypalOrderService**
+  - `getOrderDetails()` — GET detalles de orden
+  - `refundCapture()` — Reembolso total/parcial
+  - `createSetupToken()` — Crear setup token (Vault v3)
+  - `createPaymentToken()` — Crear payment token desde setup token
+
+- **PaypalOrderService exportado** para uso directo por el desarrollador
+
+### Tests
+
+- 50 tests unitarios (9 nuevos)
+- Cobertura de Pay Later, vaultPaypalDirect, vaultCardDirect, getOrderDetails, refund
+
+---
+
 ## 0.1.0
 
 ### Nuevas funcionalidades

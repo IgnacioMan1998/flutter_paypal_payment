@@ -10,10 +10,15 @@ Paquete Flutter para integrar pagos con PayPal usando el **PayPal Mobile SDK v2.
 | ----------------------------- | --------------------- | --------------------- |
 | Checkout PayPal               | `pay()`               | Sí (crea la orden)    |
 | Checkout PayPal sin backend   | `payDirect()`         | No                    |
+| Pay Later (financiación)      | `pay()` + `payLater`  | Sí (crea la orden)    |
 | Pago con tarjeta              | `payWithCard()`       | Sí (crea la orden)    |
 | Pago con tarjeta sin backend  | `payWithCardDirect()` | No                    |
 | Guardar cuenta PayPal (Vault) | `vaultPaypal()`       | Sí (crea setup token) |
 | Guardar tarjeta (Vault)       | `vaultCard()`         | Sí (crea setup token) |
+| Vault PayPal sin backend      | `vaultPaypalDirect()` | No                    |
+| Vault tarjeta sin backend     | `vaultCardDirect()`   | No                    |
+| Consultar orden               | `getOrderDetails()`   | No                    |
+| Reembolso                     | `refund()`            | No                    |
 
 - Soporte completo de **3D Secure** en pagos con tarjeta
 - Arquitectura limpia: entidades, repositorios, mappers
@@ -220,6 +225,109 @@ result.fold(
 
 ---
 
+### 8. Pay Later (financiación PayPal)
+
+Ofrece PayPal Pay Later como opción de financiación. El usuario puede pagar en cuotas.
+
+```dart
+final result = await paypal.pay(
+  PaymentRequest(
+    orderId: 'ORDER_ID_DEL_BACKEND',
+    fundingSource: PaypalFundingSource.payLater,
+  ),
+);
+
+result.fold(
+  (failure) => print('Pay Later error: ${failure.message}'),
+  (success) => print('Pay Later completado! Orden: ${success.orderId}'),
+);
+```
+
+---
+
+### 9. Vault PayPal sin backend
+
+Crea el setup token, guarda la cuenta PayPal y crea el payment token — todo desde Flutter.
+
+> **Nota:** Requiere tu `clientSecret`. No se recomienda en producción.
+
+```dart
+final result = await paypal.vaultPaypalDirect(
+  clientSecret: 'TU_CLIENT_SECRET',
+  customer: {'id': 'CUSTOMER_123'},
+);
+
+result.fold(
+  (failure) => print('Vault error: ${failure.message}'),
+  (success) => print('PayPal guardado! Payment Token: $success'),
+);
+```
+
+---
+
+### 10. Vault tarjeta sin backend
+
+```dart
+final result = await paypal.vaultCardDirect(
+  clientSecret: 'TU_CLIENT_SECRET',
+  card: const PaymentCard(
+    number: '4111111111111111',
+    expirationMonth: '12',
+    expirationYear: '2028',
+    securityCode: '123',
+  ),
+  customer: {'id': 'CUSTOMER_123'},
+);
+
+result.fold(
+  (failure) => print('Card vault error: ${failure.message}'),
+  (success) => print('Tarjeta guardada! Payment Token: $success'),
+);
+```
+
+---
+
+### 11. Consultar detalles de una orden
+
+Obtén el estado y detalles de una orden creada previamente.
+
+```dart
+final result = await paypal.getOrderDetails(
+  clientSecret: 'TU_CLIENT_SECRET',
+  orderId: 'ORDER_ID',
+);
+
+result.fold(
+  (failure) => print('Error: ${failure.message}'),
+  (order) => print('Estado: ${order['status']}, '
+      'Monto: ${order['purchase_units']?[0]?['amount']}'),
+);
+```
+
+---
+
+### 12. Reembolso (total o parcial)
+
+Reembolsa un pago capturado. Si no especificas monto, se reembolsa el total.
+
+```dart
+// Reembolso total
+final result = await paypal.refund(
+  clientSecret: 'TU_CLIENT_SECRET',
+  captureId: 'CAPTURE_ID',
+);
+
+// Reembolso parcial
+final partial = await paypal.refund(
+  clientSecret: 'TU_CLIENT_SECRET',
+  captureId: 'CAPTURE_ID',
+  amount: '5.00',
+  currencyCode: 'USD',
+);
+```
+
+---
+
 ## Arquitectura
 
 ```
@@ -265,4 +373,5 @@ Callback → Pigeon → Dart → Either<Failure, Success>
 ## Licencia
 
 MIT
+
 # flutter_paypal_payment
