@@ -45,16 +45,12 @@ class PaypalOrderService {
   /// Get an OAuth2 access token using client credentials.
   /// Caches the token and reuses it until near-expiry.
   Future<Either<PaymentFailure, String>> _getAccessToken() async {
-    if (_cachedToken != null &&
-        _tokenExpiry != null &&
-        DateTime.now().isBefore(_tokenExpiry!.subtract(
-            const Duration(seconds: PaypalApiConstants.tokenExpiryMarginSeconds)))) {
+    if (_cachedToken != null && _tokenExpiry != null && DateTime.now().isBefore(_tokenExpiry!.subtract(const Duration(seconds: PaypalApiConstants.tokenExpiryMarginSeconds)))) {
       return Right(_cachedToken!);
     }
 
     try {
-      final credentials =
-          base64Encode(utf8.encode('${_config.clientId}:$_clientSecret'));
+      final credentials = base64Encode(utf8.encode('${_config.clientId}:$_clientSecret'));
 
       final response = await _client.post(
         Uri.parse('$_baseUrl${PaypalApiConstants.oauthTokenPath}'),
@@ -68,8 +64,7 @@ class PaypalOrderService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final token = data['access_token'] as String;
-        final expiresIn = data['expires_in'] as int? ??
-            PaypalApiConstants.defaultTokenExpirySeconds;
+        final expiresIn = data['expires_in'] as int? ?? PaypalApiConstants.defaultTokenExpirySeconds;
 
         _cachedToken = token;
         _tokenExpiry = DateTime.now().add(Duration(seconds: expiresIn));
@@ -90,8 +85,7 @@ class PaypalOrderService {
   }
 
   /// Create an order on PayPal and return the order ID.
-  Future<Either<PaymentFailure, String>> createOrder(
-      PaymentParams params) async {
+  Future<Either<PaymentFailure, String>> createOrder(PaymentParams params) async {
     final tokenResult = await _getAccessToken();
 
     return tokenResult.fold(
