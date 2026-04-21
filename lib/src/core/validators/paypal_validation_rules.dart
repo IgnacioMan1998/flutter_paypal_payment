@@ -17,7 +17,7 @@ abstract final class PaypalValidationRules {
 
   /// Deep link return URL: scheme://host.
   static final RegExp returnUrlPattern =
-      RegExp(r'^[a-zA-Z][a-zA-Z0-9.+-]*://[a-zA-Z0-9._-]+$');
+      RegExp(r'^[a-zA-Z][a-zA-Z0-9._+-]*://[a-zA-Z0-9._-]+$');
 
   /// Safe PayPal ID (order, capture, setup token): alphanumeric + dash/underscore.
   static final RegExp safeIdPattern = RegExp(r'^[A-Za-z0-9_-]+$');
