@@ -1,3 +1,9 @@
+## 0.0.6
+
+- **New**: `PaypalCardForm` widget — PayPal-styled card payment UI with animated 3D card preview, automatic network detection (Visa, Mastercard, Amex, Discover), dark navy PayPal aesthetic, and "Secured by PayPal" footer
+- **New**: `PaypalCardForm` accepts optional `amount` and `currency` params to display order total in header
+- **New**: Card preview flips to show CVV position when CVV field is focused
+
 ## 0.0.5
 
 - **Fix iOS**: Updated callback signatures to use `Result<T, CoreSDKError>` pattern (iOS SDK v2.0.1 API)
