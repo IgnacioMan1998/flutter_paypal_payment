@@ -1,3 +1,7 @@
+## 0.0.7
+
+- **Fix**: `returnUrl` validator now accepts underscores in scheme (e.g. `com.startup_kjaia://paypalpay`)
+
 ## 0.0.6
 
 - **New**: `PaypalCardForm` widget — PayPal-styled card payment UI with animated 3D card preview, automatic network detection (Visa, Mastercard, Amex, Discover), dark navy PayPal aesthetic, and "Secured by PayPal" footer
