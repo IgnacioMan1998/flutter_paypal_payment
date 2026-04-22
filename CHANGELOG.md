@@ -1,3 +1,7 @@
+## 0.0.8
+
+- **Redesign**: `PaypalCardForm` reskinned to PayPal light paysheet aesthetic — white background, `#001C64` navy typography, `#F5F7FA` input fields, `#003087` CTA button, drag handle, centered PayPal wordmark, amount display, "Payment method rights" link, and section header "Add debit or credit card"
+
 ## 0.0.7
 
 - **Fix**: `returnUrl` validator now accepts underscores in scheme (e.g. `com.startup_kjaia://paypalpay`)

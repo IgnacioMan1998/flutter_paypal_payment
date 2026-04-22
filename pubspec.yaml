@@ -1,6 +1,6 @@
 name: paypal_checkout_flutter
 description: "Flutter PayPal integration — native SDK checkout, cards, vault, subscriptions, plans, products, orders & refunds. No WebView."
-version: 0.0.7
+version: 0.0.8
 homepage: https://github.com/IgnacioMan1998/flutter_paypal_payment
 repository: https://github.com/IgnacioMan1998/flutter_paypal_payment
 issue_tracker: https://github.com/IgnacioMan1998/flutter_paypal_payment/issues
