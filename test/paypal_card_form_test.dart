@@ -206,17 +206,11 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '6011');
       await tester.pump();
-      expect(find.text('DISCOVER'), findsOneWidget);
+      expect(find.text('DISC'), findsOneWidget);
     });
   });
 
   group('PaypalCardForm — CVV flip animation', () {
-    testWidgets('card preview present before CVV focus', (tester) async {
-      await tester.pumpWidget(_wrap(_form()));
-      // Card preview should always be rendered
-      expect(find.byKey(const Key('paypal_card_preview')), findsOneWidget);
-    });
-
     testWidgets('focuses CVV field without crash', (tester) async {
       await tester.pumpWidget(_wrap(_form()));
       await tester.tap(find.byKey(const Key('paypal_card_cvv')));

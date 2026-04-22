@@ -6,7 +6,8 @@
 - **New**: `PaypalCardForm.requireBillingPostalCode` — optional billing ZIP field
 - **New**: Accessibility — all `PaypalCardForm` fields wrapped in `Semantics`; stable `Key` identifiers for every input
 - **New**: Error code reference table added to README `## Error Handling` section
-- **Tests**: 24 widget tests for `PaypalCardForm` (rendering, validation, card-type detection, CVV flip, formatters)
+- **Redesign**: `PaypalCardForm` removes animated 3D card preview — replaced with clean flat inputs; card number field shows detected network badge inline (Visa, Mastercard, Amex, Discover); PayPal header uses simple two-tone wordmark
+- **Tests**: 23 widget tests for `PaypalCardForm` (rendering, validation, card-type detection, formatters)
 - **Tests**: Extended direct-pay (`payDirect`, `payWithCardDirect`) test groups
 
 ## 0.0.8

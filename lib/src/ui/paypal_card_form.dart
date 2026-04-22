@@ -16,8 +16,7 @@ const _kInputBorder = Color(0xFFCDD1D4);
 const _kInputFocusBorder = Color(0xFF0070BA);
 const _kDivider = Color(0xFFE8ECF0);
 const _kError = Color(0xFFD0021B);
-const _kCardGradientStart = Color(0xFF1A3A5C);
-const _kCardGradientEnd = Color(0xFF0D2137);
+
 
 /// A PayPal-styled card payment form.
 ///
@@ -84,8 +83,7 @@ class PaypalCardForm extends StatefulWidget {
   State<PaypalCardForm> createState() => _PaypalCardFormState();
 }
 
-class _PaypalCardFormState extends State<PaypalCardForm>
-    with SingleTickerProviderStateMixin {
+class _PaypalCardFormState extends State<PaypalCardForm> {
   final _formKey = GlobalKey<FormState>();
 
   final _numberController = TextEditingController();
@@ -104,10 +102,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   bool _obscureCvv = true;
   _CardType _cardType = _CardType.unknown;
 
-  late final AnimationController _flipController;
-  late final Animation<double> _flipAnimation;
-  bool _showingBack = false;
-
   bool get _busy => _submitting || widget.isLoading;
 
   String get _rawNumber =>
@@ -119,24 +113,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   @override
   void initState() {
     super.initState();
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
-    );
-
-    _cvvFocus.addListener(() {
-      if (_cvvFocus.hasFocus && !_showingBack) {
-        _showingBack = true;
-        _flipController.forward();
-      } else if (!_cvvFocus.hasFocus && _showingBack) {
-        _showingBack = false;
-        _flipController.reverse();
-      }
-    });
-
     _numberController.addListener(() {
       setState(() => _cardType = _CardTypeExt.detect(_rawNumber));
     });
@@ -144,7 +120,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
   @override
   void dispose() {
-    _flipController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
@@ -235,189 +210,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     }
   }
 
-  // ── Card preview ────────────────────────────────────────
-
-  Widget _buildCardPreview() {
-    final number = _rawNumber.isEmpty
-        ? '•••• •••• •••• ••••'
-        : _numberController.text.padRight(19, ' ');
-    final expiry =
-        _expiryController.text.isEmpty ? 'MM/YY' : _expiryController.text;
-
-    return Semantics(
-      label: 'Card preview',
-      child: KeyedSubtree(
-        key: const Key('paypal_card_preview'),
-        child: AnimatedBuilder(
-          animation: _flipAnimation,
-          builder: (context, _) {
-            final angle = _flipAnimation.value * 3.14159;
-            final showBack = _flipAnimation.value > 0.5;
-            return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001)
-                ..rotateY(angle),
-              child: showBack
-                  ? Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()..rotateY(3.14159),
-                      child: _buildCardBack(),
-                    )
-                  : _buildCardFront(number, expiry),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardFront(String number, String expiry) {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_kCardGradientStart, _kCardGradientEnd],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF001C64).withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 40,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4A017),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              _cardType.logo,
-            ],
-          ),
-          const Spacer(),
-          Text(
-            number,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 2,
-              fontFamily: 'monospace',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'VALID THRU',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 9,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    expiry,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (widget.requireCardholderName &&
-                  _nameController.text.isNotEmpty)
-                Text(
-                  _nameController.text.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1,
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardBack() {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_kCardGradientStart, _kCardGradientEnd],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF001C64).withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 32),
-          Container(height: 40, color: Colors.black54),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(height: 36, color: const Color(0xFFE8E8E8)),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 56,
-                  height: 36,
-                  color: Colors.white,
-                  alignment: Alignment.center,
-                  child: Text(
-                    _cvvController.text.isEmpty
-                        ? '•••'
-                        : '•' * _cvvController.text.length,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Input field ─────────────────────────────────────────
 
   Widget _buildField({
@@ -431,6 +223,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     TextInputAction textInputAction = TextInputAction.next,
     List<TextInputFormatter>? formatters,
     bool obscure = false,
+    Widget? prefixIcon,
     Widget? suffixIcon,
     VoidCallback? onSubmitted,
   }) {
@@ -459,6 +252,10 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         hintStyle: TextStyle(color: _kSubtext.withValues(alpha: 0.7), fontSize: 14),
         filled: true,
         fillColor: _kInputBg,
+        prefixIcon: prefixIcon,
+        prefixIconConstraints: prefixIcon != null
+            ? const BoxConstraints(minWidth: 52, minHeight: 0)
+            : null,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -528,7 +325,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 children: [
-                  const _PaypalLogo(),
+                  const _PaypalWordmark(),
                   const SizedBox(height: 12),
                   if (widget.amount != null) ...[
                     Text(
@@ -573,10 +370,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Card preview ──
-                  _buildCardPreview(),
-                  const SizedBox(height: 20),
-
                   // ── Card number ──
                   _buildField(
                     widgetKey: const Key('paypal_card_number'),
@@ -589,6 +382,10 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                       FilteringTextInputFormatter.digitsOnly,
                       _CardNumberFormatter(),
                     ],
+                    prefixIcon: SizedBox(
+                      width: 52,
+                      child: Center(child: _cardType.fieldIcon),
+                    ),
                     onSubmitted: () =>
                         FocusScope.of(context).requestFocus(_expiryFocus),
                   ),
@@ -610,6 +407,11 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                             FilteringTextInputFormatter.digitsOnly,
                             _ExpiryFormatter(),
                           ],
+                          prefixIcon: const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 16,
+                            color: _kSubtext,
+                          ),
                           onSubmitted: () =>
                               FocusScope.of(context).requestFocus(_cvvFocus),
                         ),
@@ -787,49 +589,29 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   }
 }
 
-// ── PayPal Logo widget ──────────────────────────────────
+// ── PayPal Wordmark ────────────────────────────────────────
 
-class _PaypalLogo extends StatelessWidget {
-  const _PaypalLogo();
+class _PaypalWordmark extends StatelessWidget {
+  const _PaypalWordmark();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // PayPal "P" icon
-        Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            color: _kBlue,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            'P',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text(
+        Text(
           'Pay',
           style: TextStyle(
             color: _kLightBlue,
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const Text(
+        Text(
           'Pal',
           style: TextStyle(
             color: _kBlue,
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -858,30 +640,29 @@ class _CardTypeExt {
 }
 
 extension _CardTypeLogoExt on _CardType {
-  Widget get logo {
+  Widget get fieldIcon {
     switch (this) {
       case _CardType.visa:
         return const Text(
           'VISA',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+            color: Color(0xFF1A1F71),
+            fontSize: 13,
             fontWeight: FontWeight.w800,
             fontStyle: FontStyle.italic,
-            letterSpacing: 1,
           ),
         );
       case _CardType.mastercard:
         return SizedBox(
-          width: 44,
-          height: 28,
+          width: 36,
+          height: 22,
           child: Stack(
             children: [
               Positioned(
                 left: 0,
                 child: Container(
-                  width: 28,
-                  height: 28,
+                  width: 22,
+                  height: 22,
                   decoration: const BoxDecoration(
                     color: Color(0xFFEB001B),
                     shape: BoxShape.circle,
@@ -891,10 +672,10 @@ extension _CardTypeLogoExt on _CardType {
               Positioned(
                 right: 0,
                 child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF79E1B),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF79E1B).withValues(alpha: 0.85),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -904,39 +685,39 @@ extension _CardTypeLogoExt on _CardType {
         );
       case _CardType.amex:
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.blue.shade700,
-            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFF006FCF),
+            borderRadius: BorderRadius.circular(3),
           ),
           child: const Text(
             'AMEX',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1,
+              letterSpacing: 0.5,
             ),
           ),
         );
       case _CardType.discover:
         return const Text(
-          'DISCOVER',
+          'DISC',
           style: TextStyle(
             color: Color(0xFFFF6600),
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
           ),
         );
       case _CardType.unknown:
-        return Icon(
-          Icons.credit_card,
-          color: Colors.white.withValues(alpha: 0.5),
-          size: 28,
+        return const Icon(
+          Icons.credit_card_outlined,
+          size: 20,
+          color: _kSubtext,
         );
     }
   }
+
 }
 
 // ── Input formatters ────────────────────────────────────
