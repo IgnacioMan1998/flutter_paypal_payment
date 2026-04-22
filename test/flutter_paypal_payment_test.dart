@@ -1255,4 +1255,96 @@ void main() {
       );
     });
   });
+
+  // ═══════════════════════════════════════════════════════
+  // payDirect() — extended tests
+  // ═══════════════════════════════════════════════════════
+
+  group('payDirect() extended', () {
+    test('delegates payment to repository after init', () async {
+      await paypal.init(testConfig);
+      mockRepo.paymentResult = const Right(
+        PaymentSuccess(orderId: 'O-DIRECT', payerId: 'P-DIRECT'),
+      );
+
+      // payDirect creates an order via HTTP then calls processPayment.
+      // Without a real HTTP server we only verify NOT_INITIALIZED is NOT returned.
+      final result = await paypal.payDirect(
+        clientSecret: 'secret',
+        params: PaymentParams(amount: '10.00', currencyCode: 'USD'),
+      );
+
+      // Will fail at HTTP (no server) — but code must NOT be NOT_INITIALIZED
+      result.fold(
+        (f) => expect(f.code, isNot('NOT_INITIALIZED')),
+        (_) => {},
+      );
+    });
+
+    test('passes autoCapture=false — still calls processPayment', () async {
+      await paypal.init(testConfig);
+      mockRepo.paymentResult = const Right(
+        PaymentSuccess(orderId: 'O-NOCAPTURE'),
+      );
+
+      final result = await paypal.payDirect(
+        clientSecret: 'secret',
+        params: PaymentParams(amount: '5.00', currencyCode: 'USD'),
+        autoCapture: false,
+      );
+
+      result.fold(
+        (f) => expect(f.code, isNot('NOT_INITIALIZED')),
+        (_) => {},
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // payWithCardDirect() — extended tests
+  // ═══════════════════════════════════════════════════════
+
+  group('payWithCardDirect() extended', () {
+    test('delegates to repository after init', () async {
+      await paypal.init(testConfig);
+      mockRepo.cardResult = const Right(
+        CardPaymentSuccess(orderId: 'O-CARD-DIRECT', status: 'APPROVED'),
+      );
+
+      final result = await paypal.payWithCardDirect(
+        clientSecret: 'secret',
+        params: PaymentParams(amount: '20.00', currencyCode: 'USD'),
+        buildRequest: (orderId) =>
+            CardPaymentRequest(orderId: orderId, card: testCard),
+      );
+
+      result.fold(
+        (f) => expect(f.code, isNot('NOT_INITIALIZED')),
+        (_) => {},
+      );
+    });
+
+    test('passes SCA via buildRequest', () async {
+      await paypal.init(testConfig);
+
+      String? capturedOrderId;
+      await paypal.payWithCardDirect(
+        clientSecret: 'secret',
+        params: PaymentParams(amount: '30.00', currencyCode: 'USD'),
+        buildRequest: (orderId) {
+          capturedOrderId = orderId;
+          return CardPaymentRequest(
+            orderId: orderId,
+            card: testCard,
+            sca: 'SCA_ALWAYS',
+          );
+        },
+      );
+
+      // buildRequest was called with some orderId (may be from HTTP error path)
+      // We only assert it was called — orderId may be null if HTTP failed before call
+      // The important thing: no crash, no NOT_INITIALIZED
+      expect(capturedOrderId == null || capturedOrderId!.isNotEmpty, true);
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
@@ -31,6 +32,43 @@ class PaypalSubscriptionService {
   final String _clientSecret;
   final http.Client _client;
 
+  void _log(String method, String url, int? status, String? body) {
+    if (!_config.debugMode) return;
+    developer.log(
+      '[PayPal] $method $url => $status${body != null ? '\n$body' : ''}',
+      name: 'paypal_checkout_flutter',
+    );
+  }
+
+  Future<http.Response> _post(Uri uri, Map<String, String> headers,
+      [String? body]) async {
+    _log('POST', uri.toString(), null, body);
+    final response = await _client
+        .post(uri, headers: headers, body: body)
+        .timeout(_config.httpTimeout);
+    _log('POST', uri.toString(), response.statusCode, response.body);
+    return response;
+  }
+
+  Future<http.Response> _get(Uri uri, Map<String, String> headers) async {
+    _log('GET', uri.toString(), null, null);
+    final response = await _client
+        .get(uri, headers: headers)
+        .timeout(_config.httpTimeout);
+    _log('GET', uri.toString(), response.statusCode, response.body);
+    return response;
+  }
+
+  Future<http.Response> _patch(
+      Uri uri, Map<String, String> headers, String body) async {
+    _log('PATCH', uri.toString(), null, body);
+    final response = await _client
+        .patch(uri, headers: headers, body: body)
+        .timeout(_config.httpTimeout);
+    _log('PATCH', uri.toString(), response.statusCode, response.body);
+    return response;
+  }
+
   // Token cache
   String? _cachedToken;
   DateTime? _tokenExpiry;
@@ -52,13 +90,13 @@ class PaypalSubscriptionService {
       final credentials =
           base64Encode(utf8.encode('${_config.clientId}:$_clientSecret'));
 
-      final response = await _client.post(
+      final response = await _post(
         Uri.parse('$_baseUrl${PaypalApiConstants.oauthTokenPath}'),
-        headers: {
+        {
           'Authorization': 'Basic $credentials',
           'Content-Type': PaypalApiConstants.contentTypeForm,
         },
-        body: PaypalApiConstants.grantTypeCredentials,
+        PaypalApiConstants.grantTypeCredentials,
       );
 
       if (response.statusCode == 200) {
@@ -99,13 +137,13 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse('$_baseUrl${PaypalApiConstants.productsPath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(product),
+            jsonEncode(product),
           );
 
           if (response.statusCode == 201) {
@@ -152,9 +190,9 @@ class PaypalSubscriptionService {
           final uri = Uri.parse('$_baseUrl${PaypalApiConstants.productsPath}')
               .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-          final response = await _client.get(
+          final response = await _get(
             uri,
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -195,10 +233,10 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.get(
+          final response = await _get(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.productsPath}/${Uri.encodeComponent(productId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -243,14 +281,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.patch(
+          final response = await _patch(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.productsPath}/${Uri.encodeComponent(productId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(patchOperations),
+            jsonEncode(patchOperations),
           );
 
           if (response.statusCode == 204) {
@@ -286,13 +324,13 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse('$_baseUrl${PaypalApiConstants.plansPath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(plan),
+            jsonEncode(plan),
           );
 
           if (response.statusCode == 201) {
@@ -341,9 +379,9 @@ class PaypalSubscriptionService {
           final uri = Uri.parse('$_baseUrl${PaypalApiConstants.plansPath}')
               .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-          final response = await _client.get(
+          final response = await _get(
             uri,
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -384,10 +422,10 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.get(
+          final response = await _get(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.plansPath}/${Uri.encodeComponent(planId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -430,14 +468,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.patch(
+          final response = await _patch(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.plansPath}/${Uri.encodeComponent(planId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(patchOperations),
+            jsonEncode(patchOperations),
           );
 
           if (response.statusCode == 204) {
@@ -487,14 +525,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.plansPath}/${Uri.encodeComponent(planId)}${PaypalApiConstants.updatePricingSubpath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode({'pricing_schemes': pricingSchemes}),
+            jsonEncode({'pricing_schemes': pricingSchemes}),
           );
 
           if (response.statusCode == 204) {
@@ -530,10 +568,10 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.plansPath}/${Uri.encodeComponent(planId)}$action'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -595,9 +633,9 @@ class PaypalSubscriptionService {
                       queryParameters:
                           queryParams.isNotEmpty ? queryParams : null);
 
-          final response = await _client.get(
+          final response = await _get(
             uri,
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -635,13 +673,13 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse('$_baseUrl${PaypalApiConstants.subscriptionsPath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(subscription),
+            jsonEncode(subscription),
           );
 
           if (response.statusCode == 201) {
@@ -679,10 +717,10 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.get(
+          final response = await _get(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -728,14 +766,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.patch(
+          final response = await _patch(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(patchOperations),
+            jsonEncode(patchOperations),
           );
 
           if (response.statusCode == 204) {
@@ -778,14 +816,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}${PaypalApiConstants.captureSubpath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(captureRequest),
+            jsonEncode(captureRequest),
           );
 
           if (response.statusCode == 202) {
@@ -840,9 +878,9 @@ class PaypalSubscriptionService {
             'end_time': endTime,
           });
 
-          final response = await _client.get(
+          final response = await _get(
             uri,
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
@@ -914,14 +952,14 @@ class PaypalSubscriptionService {
             body['reason'] = reason;
           }
 
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}$action'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: body.isNotEmpty ? jsonEncode(body) : null,
+            body.isNotEmpty ? jsonEncode(body) : null,
           );
 
           if (response.statusCode == 204) {
@@ -960,14 +998,14 @@ class PaypalSubscriptionService {
       (failure) => Left(failure),
       (token) async {
         try {
-          final response = await _client.post(
+          final response = await _post(
             Uri.parse(
                 '$_baseUrl${PaypalApiConstants.subscriptionsPath}/${Uri.encodeComponent(subscriptionId)}${PaypalApiConstants.reviseSubpath}'),
-            headers: {
+            {
               'Authorization': 'Bearer $token',
               'Content-Type': PaypalApiConstants.contentTypeJson,
             },
-            body: jsonEncode(revisionDetails),
+            jsonEncode(revisionDetails),
           );
 
           if (response.statusCode == 200) {

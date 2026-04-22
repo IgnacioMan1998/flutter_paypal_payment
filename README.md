@@ -185,6 +185,45 @@ final result = await paypal.payWithCard(
 );
 ```
 
+### 3b. PaypalCardForm Widget
+
+Drop-in PayPal-styled card form. Shows animated 3D card preview, auto-detects card network (Visa, Mastercard, Amex, Discover), and validates all fields client-side before calling `onSubmit`.
+
+```dart
+import 'package:paypal_checkout_flutter/paypal_checkout_flutter.dart';
+
+showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (ctx) => Padding(
+    padding: EdgeInsets.only(
+      bottom: MediaQuery.of(ctx).viewInsets.bottom,
+    ),
+    child: SingleChildScrollView(
+      child: PaypalCardForm(
+        amount: '35.20',
+        currency: 'USD',
+        submitButtonText: 'Pay \$35.20',
+        requireCardholderName: false,   // optional name field
+        requireBillingPostalCode: false, // optional ZIP field
+        onSubmit: (card) async {
+          Navigator.of(ctx).pop();
+          final result = await paypal.payWithCard(
+            CardPaymentRequest(orderId: 'ORDER_ID', card: card),
+          );
+          result.fold(
+            (err) => showError(err.message),
+            (ok)  => showSuccess(ok.orderId),
+          );
+        },
+        onError: (message) => showError(message),
+      ),
+    ),
+  ),
+);
+```
+
 ### 4. Pay Later (Financing)
 
 ```dart
@@ -595,6 +634,41 @@ result.fold(
   },
 );
 ```
+
+### Error Code Reference
+
+| Code                          | When it occurs                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| `NOT_INITIALIZED`             | `init()` was not called before `pay()` or `payWithCard()`                          |
+| `AUTH_ERROR`                  | OAuth2 token request failed (bad credentials or network)                           |
+| `CREATE_ORDER_ERROR`          | Order creation failed                                                              |
+| `CAPTURE_ERROR`               | Order capture failed after buyer approval                                          |
+| `GET_ORDER_ERROR`             | `getOrderDetails()` failed                                                         |
+| `UPDATE_ORDER_ERROR`          | `updateOrder()` PATCH failed                                                       |
+| `AUTHORIZE_ERROR`             | `authorizeOrder()` failed (AUTHORIZE intent)                                       |
+| `CAPTURE_AUTHORIZATION_ERROR` | `captureAuthorization()` failed                                                    |
+| `VOID_AUTHORIZATION_ERROR`    | `voidAuthorization()` failed                                                       |
+| `REFUND_ERROR`                | `refundCapture()` failed                                                           |
+| `SETUP_TOKEN_ERROR`           | `createSetupToken()` failed (vaulting flow)                                        |
+| `PAYMENT_TOKEN_ERROR`         | `createPaymentToken()` failed (vaulting flow)                                      |
+| `CREATE_PRODUCT_ERROR`        | `createProduct()` failed (subscriptions)                                           |
+| `CREATE_PLAN_ERROR`           | `createPlan()` failed                                                              |
+| `GET_PLAN_ERROR`              | `getPlan()` failed                                                                 |
+| `UPDATE_PLAN_ERROR`           | `updatePlan()` failed                                                              |
+| `LIST_PLANS_ERROR`            | `listPlans()` failed                                                               |
+| `UPDATE_PRICING_ERROR`        | `updatePlanPricing()` failed                                                       |
+| `CREATE_SUBSCRIPTION_ERROR`   | `createSubscription()` failed                                                      |
+| `GET_SUBSCRIPTION_ERROR`      | `getSubscription()` failed                                                         |
+| `SUBSCRIPTION_ACTION_ERROR`   | `suspendSubscription()` / `cancelSubscription()` / `activateSubscription()` failed |
+| `CAPTURE_SUBSCRIPTION_ERROR`  | `captureSubscriptionPayment()` failed                                              |
+| `UPDATE_SUBSCRIPTION_ERROR`   | `updateSubscription()` failed                                                      |
+| `LIST_SUBSCRIPTIONS_ERROR`    | `listSubscriptions()` failed                                                       |
+| `LIST_TRANSACTIONS_ERROR`     | `listSubscriptionTransactions()` failed                                            |
+| `LIST_PRODUCTS_ERROR`         | `listProducts()` failed                                                            |
+| `GET_PRODUCT_ERROR`           | `getProduct()` failed                                                              |
+| `UPDATE_PRODUCT_ERROR`        | `updateProduct()` failed                                                           |
+| `VALIDATION_ERROR`            | Invalid input (e.g. malformed order ID)                                            |
+| `UNKNOWN_ERROR`               | Unexpected error not covered above                                                 |
 
 ## Support
 

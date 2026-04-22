@@ -1,3 +1,14 @@
+## 0.0.9
+
+- **New**: `PaypalConfig.httpTimeout` — configurable HTTP timeout for all REST API calls (default 30 s)
+- **New**: `PaypalConfig.debugMode` — verbose request/response logging via `dart:developer` (disable in production)
+- **New**: `PaypalCardForm.onError` callback — surfaces submission errors to the parent widget
+- **New**: `PaypalCardForm.requireBillingPostalCode` — optional billing ZIP field
+- **New**: Accessibility — all `PaypalCardForm` fields wrapped in `Semantics`; stable `Key` identifiers for every input
+- **New**: Error code reference table added to README `## Error Handling` section
+- **Tests**: 24 widget tests for `PaypalCardForm` (rendering, validation, card-type detection, CVV flip, formatters)
+- **Tests**: Extended direct-pay (`payDirect`, `payWithCardDirect`) test groups
+
 ## 0.0.8
 
 - **Redesign**: `PaypalCardForm` reskinned to PayPal light paysheet aesthetic — white background, `#001C64` navy typography, `#F5F7FA` input fields, `#003087` CTA button, drag handle, centered PayPal wordmark, amount display, "Payment method rights" link, and section header "Add debit or credit card"

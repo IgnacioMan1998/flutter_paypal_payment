@@ -45,16 +45,22 @@ class PaypalCardForm extends StatefulWidget {
   const PaypalCardForm({
     super.key,
     required this.onSubmit,
+    this.onError,
     this.amount,
     this.currency,
     this.submitButtonText = 'Complete Order',
     this.requireCardholderName = false,
+    this.requireBillingPostalCode = false,
     this.isLoading = false,
   });
 
   /// Called when all fields are valid and the user taps the pay button.
   /// Receives a fully-validated [PaymentCard].
   final Future<void> Function(PaymentCard card) onSubmit;
+
+  /// Called when [onSubmit] throws. Receives the error message.
+  /// If null, errors are silently swallowed.
+  final void Function(String message)? onError;
 
   /// Amount to display prominently in the header (e.g. "35.20"). Optional.
   final String? amount;
@@ -67,6 +73,9 @@ class PaypalCardForm extends StatefulWidget {
 
   /// Whether the cardholder name field is required. Defaults to false.
   final bool requireCardholderName;
+
+  /// Whether a billing postal code field is required. Defaults to false.
+  final bool requireBillingPostalCode;
 
   /// External loading state to disable the form while a payment is in flight.
   final bool isLoading;
@@ -83,11 +92,13 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+  final _zipController = TextEditingController();
 
   final _numberFocus = FocusNode();
   final _expiryFocus = FocusNode();
   final _cvvFocus = FocusNode();
   final _nameFocus = FocusNode();
+  final _zipFocus = FocusNode();
 
   bool _submitting = false;
   bool _obscureCvv = true;
@@ -138,10 +149,12 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
+    _zipController.dispose();
     _numberFocus.dispose();
     _expiryFocus.dispose();
     _cvvFocus.dispose();
     _nameFocus.dispose();
+    _zipFocus.dispose();
     super.dispose();
   }
 
@@ -189,6 +202,14 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     return null;
   }
 
+  String? _validateZip(String? value) {
+    if (!widget.requireBillingPostalCode) return null;
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return 'Postal code is required';
+    if (v.length < 3 || v.length > 10) return 'Invalid postal code';
+    return null;
+  }
+
   // ── Submit ──────────────────────────────────────────────
 
   Future<void> _handleSubmit() async {
@@ -207,6 +228,8 @@ class _PaypalCardFormState extends State<PaypalCardForm>
             : _nameController.text.trim(),
       );
       await widget.onSubmit(card);
+    } catch (e) {
+      widget.onError?.call(e.toString());
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -221,25 +244,31 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     final expiry =
         _expiryController.text.isEmpty ? 'MM/YY' : _expiryController.text;
 
-    return AnimatedBuilder(
-      animation: _flipAnimation,
-      builder: (context, _) {
-        final angle = _flipAnimation.value * 3.14159;
-        final showBack = _flipAnimation.value > 0.5;
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(angle),
-          child: showBack
-              ? Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..rotateY(3.14159),
-                  child: _buildCardBack(),
-                )
-              : _buildCardFront(number, expiry),
-        );
-      },
+    return Semantics(
+      label: 'Card preview',
+      child: KeyedSubtree(
+        key: const Key('paypal_card_preview'),
+        child: AnimatedBuilder(
+          animation: _flipAnimation,
+          builder: (context, _) {
+            final angle = _flipAnimation.value * 3.14159;
+            final showBack = _flipAnimation.value > 0.5;
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY(angle),
+              child: showBack
+                  ? Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()..rotateY(3.14159),
+                      child: _buildCardBack(),
+                    )
+                  : _buildCardFront(number, expiry),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -255,7 +284,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF001C64).withOpacity(0.18),
+            color: const Color(0xFF001C64).withValues(alpha: 0.18),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -299,7 +328,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                   Text(
                     'VALID THRU',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 9,
                       letterSpacing: 1,
                     ),
@@ -345,7 +374,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF001C64).withOpacity(0.18),
+            color: const Color(0xFF001C64).withValues(alpha: 0.18),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -392,6 +421,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   // ── Input field ─────────────────────────────────────────
 
   Widget _buildField({
+    Key? widgetKey,
     required TextEditingController controller,
     required FocusNode focusNode,
     required String label,
@@ -404,8 +434,12 @@ class _PaypalCardFormState extends State<PaypalCardForm>
     Widget? suffixIcon,
     VoidCallback? onSubmitted,
   }) {
-    return TextFormField(
-      controller: controller,
+    return Semantics(
+      label: label,
+      textField: true,
+      child: TextFormField(
+        key: widgetKey,
+        controller: controller,
       focusNode: focusNode,
       enabled: !_busy,
       keyboardType: keyboardType,
@@ -422,7 +456,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         labelText: label,
         hintText: hint,
         labelStyle: const TextStyle(color: _kSubtext, fontSize: 13),
-        hintStyle: TextStyle(color: _kSubtext.withOpacity(0.7), fontSize: 14),
+        hintStyle: TextStyle(color: _kSubtext.withValues(alpha: 0.7), fontSize: 14),
         filled: true,
         fillColor: _kInputBg,
         suffixIcon: suffixIcon,
@@ -452,6 +486,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
       ),
       validator: validator,
       onFieldSubmitted: (_) => onSubmitted?.call(),
+      ),
     );
   }
 
@@ -463,7 +498,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 32,
             offset: const Offset(0, -4),
           ),
@@ -544,6 +579,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
                   // ── Card number ──
                   _buildField(
+                    widgetKey: const Key('paypal_card_number'),
                     controller: _numberController,
                     focusNode: _numberFocus,
                     label: 'Card number',
@@ -564,6 +600,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                     children: [
                       Expanded(
                         child: _buildField(
+                          widgetKey: const Key('paypal_card_expiry'),
                           controller: _expiryController,
                           focusNode: _expiryFocus,
                           label: 'Expiry date',
@@ -580,6 +617,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildField(
+                          widgetKey: const Key('paypal_card_cvv'),
                           controller: _cvvController,
                           focusNode: _cvvFocus,
                           label: 'CVV',
@@ -617,14 +655,38 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                   if (widget.requireCardholderName) ...[
                     const SizedBox(height: 12),
                     _buildField(
+                      widgetKey: const Key('paypal_card_name'),
                       controller: _nameController,
                       focusNode: _nameFocus,
                       label: 'Name on card',
                       hint: 'JOHN DOE',
                       keyboardType: TextInputType.name,
-                      textInputAction: TextInputAction.done,
+                      textInputAction: widget.requireBillingPostalCode
+                          ? TextInputAction.next
+                          : TextInputAction.done,
                       formatters: [],
                       validator: _validateName,
+                      onSubmitted: widget.requireBillingPostalCode
+                          ? () => FocusScope.of(context).requestFocus(_zipFocus)
+                          : _handleSubmit,
+                    ),
+                  ],
+
+                  // ── Billing postal code ──
+                  if (widget.requireBillingPostalCode) ...[
+                    const SizedBox(height: 12),
+                    _buildField(
+                      widgetKey: const Key('paypal_card_zip'),
+                      controller: _zipController,
+                      focusNode: _zipFocus,
+                      label: 'Billing postal code',
+                      hint: '90210',
+                      keyboardType: TextInputType.streetAddress,
+                      textInputAction: TextInputAction.done,
+                      formatters: [
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: _validateZip,
                       onSubmitted: _handleSubmit,
                     ),
                   ],
@@ -650,7 +712,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                       onPressed: _busy ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _kBlue,
-                        disabledBackgroundColor: _kBlue.withOpacity(0.45),
+                        disabledBackgroundColor: _kBlue.withValues(alpha: 0.45),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(26),
@@ -870,7 +932,7 @@ extension _CardTypeLogoExt on _CardType {
       case _CardType.unknown:
         return Icon(
           Icons.credit_card,
-          color: Colors.white.withOpacity(0.5),
+          color: Colors.white.withValues(alpha: 0.5),
           size: 28,
         );
     }
