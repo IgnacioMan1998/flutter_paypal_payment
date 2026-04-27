@@ -34,7 +34,7 @@ Future<void> _fillValidCard(WidgetTester tester) async {
   await tester.enterText(
       find.byKey(const Key('paypal_card_number')), '4111111111111111');
   await tester.enterText(
-      find.byKey(const Key('paypal_card_expiry')), '1230');
+      find.byKey(const Key('paypal_card_expiry')), '122030');
   await tester.enterText(
       find.byKey(const Key('paypal_card_cvv')), '123');
 }
@@ -123,7 +123,7 @@ void main() {
           find.byKey(const Key('paypal_card_number')), '4111111111111111');
       await tester.tap(find.text('Complete Order'));
       await tester.pump();
-      expect(find.text('Enter expiry as MM/YY'), findsOneWidget);
+      expect(find.text('Enter expiry as MM/YYYY'), findsOneWidget);
     });
 
     testWidgets('shows error for empty CVV on submit', (tester) async {
@@ -131,7 +131,7 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '4111111111111111');
       await tester.enterText(
-          find.byKey(const Key('paypal_card_expiry')), '1230');
+          find.byKey(const Key('paypal_card_expiry')), '122030');
       await tester.tap(find.text('Complete Order'));
       await tester.pump();
       expect(find.text('CVV is required'), findsOneWidget);
@@ -180,7 +180,7 @@ void main() {
       await tester.pumpWidget(_wrap(_form()));
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '4111');
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byKey(const Key('paypal_card_type_icon')),
@@ -203,7 +203,7 @@ void main() {
       await tester.pumpWidget(_wrap(_form()));
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '3400');
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byKey(const Key('paypal_card_type_icon')),
@@ -250,7 +250,7 @@ void main() {
     testWidgets('formats expiry with slash', (tester) async {
       await tester.pumpWidget(_wrap(_form()));
       await tester.enterText(
-          find.byKey(const Key('paypal_card_expiry')), '1230');
+          find.byKey(const Key('paypal_card_expiry')), '122030');
       await tester.pump();
       final field = tester.widget<EditableText>(
         find.descendant(
@@ -258,7 +258,7 @@ void main() {
           matching: find.byType(EditableText),
         ),
       );
-      expect(field.controller.text, '12/30');
+      expect(field.controller.text, '12/2030');
     });
   });
 }

@@ -168,16 +168,13 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
   String? _validateExpiry(String? _) {
     final raw = _rawExpiry;
-    if (raw.length < 4) return 'Enter expiry as MM/YY';
+    if (raw.length < 6) return 'Enter expiry as MM/YYYY';
     final month = int.tryParse(raw.substring(0, 2));
     if (month == null || month < 1 || month > 12) return 'Invalid month';
-    final yearShort = int.tryParse(raw.substring(2, 4));
-    if (yearShort == null) return 'Invalid year';
+    final year = int.tryParse(raw.substring(2));
+    if (year == null || year < 1000) return 'Invalid year';
     final now = DateTime.now();
-    final currentYear = now.year % 100;
-    final currentMonth = now.month;
-    if (yearShort < currentYear ||
-        (yearShort == currentYear && month < currentMonth)) {
+    if (year < now.year || (year == now.year && month < now.month)) {
       return 'Card has expired';
     }
     return null;
@@ -217,7 +214,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
       final card = PaymentCard(
         number: _rawNumber,
         expirationMonth: raw.substring(0, 2),
-        expirationYear: '20${raw.substring(2, 4)}',
+        expirationYear: raw.substring(2),
         securityCode: _cvvController.text.trim(),
         cardholderName: _nameController.text.trim().isEmpty
             ? null
@@ -263,7 +260,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         inputFormatters: formatters,
         style: TextStyle(
           color: t.inputTextColor,
-          fontSize: 15,
+          fontSize: 17,
           fontWeight: FontWeight.w500,
         ),
         cursorColor: t.inputFocusBorderColor,
@@ -302,7 +299,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
           ),
           errorStyle: TextStyle(color: t.errorColor, fontSize: 11),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         ),
         validator: validator,
         onFieldSubmitted: (_) => onSubmitted?.call(),
@@ -327,7 +324,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         ? 'CARD HOLDER'
         : _nameController.text.trim().toUpperCase();
     final displayExpiry =
-        _expiryController.text.isEmpty ? 'MM/YY' : _expiryController.text;
+        _expiryController.text.isEmpty ? 'MM/YYYY' : _expiryController.text;
     final displayCvv = _cvvController.text.isEmpty
         ? '\u2022\u2022\u2022'
         : '\u2022' * _cvvController.text.length;
@@ -540,8 +537,10 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   @override
   Widget build(BuildContext context) {
     final t = _t;
-    return Container(
-      decoration: BoxDecoration(
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
         color: t.backgroundColor,
         borderRadius: BorderRadius.circular(t.containerRadius),
         boxShadow: [
@@ -576,8 +575,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 children: [
-                  _PaypalWordmark(theme: t),
-                  const SizedBox(height: 12),
                   if (widget.amount != null) ...[
                     Text(
                       '\$${widget.amount}',
@@ -610,10 +607,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Animated card preview ──
-                  _buildCardPreview(),
-                  const SizedBox(height: 20),
-
                   // ── Section label ──
                   Text(
                     'Add debit or credit card',
@@ -657,7 +650,7 @@ class _PaypalCardFormState extends State<PaypalCardForm>
                           controller: _expiryController,
                           focusNode: _expiryFocus,
                           label: 'Expiry date',
-                          hint: 'MM/YY',
+                          hint: 'MM/YYYY',
                           validator: _validateExpiry,
                           formatters: [
                             FilteringTextInputFormatter.digitsOnly,
@@ -843,6 +836,27 @@ class _PaypalCardFormState extends State<PaypalCardForm>
           ],
         ),
       ),
+        ),
+
+        // ── Full-screen overlay while submitting ──
+        if (_submitting)
+          Positioned.fill(
+            child: AbsorbPointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(t.containerRadius),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1092,7 +1106,8 @@ class _ExpiryFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final capped = digits.length > 4 ? digits.substring(0, 4) : digits;
+    // MM/YYYY = 6 digits max
+    final capped = digits.length > 6 ? digits.substring(0, 6) : digits;
     final buffer = StringBuffer();
     for (int i = 0; i < capped.length; i++) {
       if (i == 2) buffer.write('/');
