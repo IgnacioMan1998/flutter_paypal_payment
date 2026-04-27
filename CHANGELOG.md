@@ -1,3 +1,13 @@
+## 0.1.0
+
+- **New**: `PaypalCardFormTheme` — fully customizable theme class for `PaypalCardForm` with 4 built-in presets: `PaypalCardFormTheme.paypal` (default), `.dark`, `.aurora`, `.gold`
+- **New**: `PaypalCardForm` accepts an optional `theme` parameter; all colors, radii and gradients are now driven by the theme — no more hardcoded values
+- **New**: Animated 3D flip card preview inside `PaypalCardForm` — shows card number, holder name and expiry on the front; flips to back to reveal CVV position when the CVV field is focused
+- **New**: Card network badge displayed on the preview card face (Visa, Mastercard, Amex, Discover) in addition to the existing inline field icon
+- **New**: Full runnable example app (`example/`) covering every plugin flow: card form demo, 4-theme comparison, card payment, direct card payment, PayPal checkout, direct PayPal checkout, vault card, vault PayPal
+- **Docs**: Confirmed PayPal Android SDK `Card.cardholderName` is **optional** — `requireCardholderName` defaults to `false` in `PaypalCardForm` matching the API contract
+- **Docs**: `CardPaymentRequest.sca` maps directly to `SCA_WHEN_REQUIRED` (default — 3DS only when bank requires) and `SCA_ALWAYS` (always trigger 3DS/dynamic-verification challenge)
+
 ## 0.0.9
 
 - **New**: `PaypalConfig.httpTimeout` — configurable HTTP timeout for all REST API calls (default 30 s)
