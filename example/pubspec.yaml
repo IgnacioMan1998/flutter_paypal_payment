@@ -1,0 +1,23 @@
+name: paypal_checkout_flutter_example
+description: Full-featured example app for paypal_checkout_flutter.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  paypal_checkout_flutter:
+    path: ../
+  dartz: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,21 +1,14 @@
+import 'dart:math' show pi;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/utils/paypal_utils.dart';
 import '../core/validators/paypal_validation_rules.dart';
 import '../domain/entities/payment_card.dart';
+import 'paypal_card_form_theme.dart';
 
-// ── PayPal brand colors (light paysheet theme) ─────────
-const _kBg = Color(0xFFFFFFFF);
-const _kNavy = Color(0xFF001C64);
-const _kBlue = Color(0xFF003087);
-const _kLightBlue = Color(0xFF009CDE);
-const _kSubtext = Color(0xFF6C7378);
-const _kInputBg = Color(0xFFF5F7FA);
-const _kInputBorder = Color(0xFFCDD1D4);
-const _kInputFocusBorder = Color(0xFF0070BA);
-const _kDivider = Color(0xFFE8ECF0);
-const _kError = Color(0xFFD0021B);
+export 'paypal_card_form_theme.dart';
 
 
 /// A PayPal-styled card payment form.
@@ -51,6 +44,7 @@ class PaypalCardForm extends StatefulWidget {
     this.requireCardholderName = false,
     this.requireBillingPostalCode = false,
     this.isLoading = false,
+    this.theme,
   });
 
   /// Called when all fields are valid and the user taps the pay button.
@@ -79,11 +73,15 @@ class PaypalCardForm extends StatefulWidget {
   /// External loading state to disable the form while a payment is in flight.
   final bool isLoading;
 
+  /// Visual theme. Defaults to [PaypalCardFormTheme.paypal].
+  final PaypalCardFormTheme? theme;
+
   @override
   State<PaypalCardForm> createState() => _PaypalCardFormState();
 }
 
-class _PaypalCardFormState extends State<PaypalCardForm> {
+class _PaypalCardFormState extends State<PaypalCardForm>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
   final _numberController = TextEditingController();
@@ -97,6 +95,9 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
   final _cvvFocus = FocusNode();
   final _nameFocus = FocusNode();
   final _zipFocus = FocusNode();
+
+  late final AnimationController _flipController;
+  late final Animation<double> _flipAnimation;
 
   bool _submitting = false;
   bool _obscureCvv = true;
@@ -113,6 +114,21 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
   @override
   void initState() {
     super.initState();
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _flipAnimation = CurvedAnimation(
+      parent: _flipController,
+      curve: Curves.easeInOut,
+    );
+    _cvvFocus.addListener(() {
+      if (_cvvFocus.hasFocus) {
+        _flipController.forward();
+      } else {
+        _flipController.reverse();
+      }
+    });
     _numberController.addListener(() {
       setState(() => _cardType = _CardTypeExt.detect(_rawNumber));
     });
@@ -120,6 +136,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
 
   @override
   void dispose() {
+    _flipController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
@@ -132,6 +149,10 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
     _zipFocus.dispose();
     super.dispose();
   }
+
+  // ── Theme ───────────────────────────────────────
+
+  PaypalCardFormTheme get _t => widget.theme ?? PaypalCardFormTheme.paypal;
 
   // ── Validators ─────────────────────────────────────────
 
@@ -227,72 +248,302 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
     Widget? suffixIcon,
     VoidCallback? onSubmitted,
   }) {
+    final t = _t;
     return Semantics(
       label: label,
       textField: true,
       child: TextFormField(
         key: widgetKey,
         controller: controller,
-      focusNode: focusNode,
-      enabled: !_busy,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      obscureText: obscure,
-      inputFormatters: formatters,
-      style: const TextStyle(
-        color: _kNavy,
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
+        focusNode: focusNode,
+        enabled: !_busy,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        obscureText: obscure,
+        inputFormatters: formatters,
+        style: TextStyle(
+          color: t.inputTextColor,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
+        cursorColor: t.inputFocusBorderColor,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          labelStyle: TextStyle(color: t.inputLabelColor, fontSize: 13),
+          hintStyle: TextStyle(
+              color: t.inputLabelColor.withValues(alpha: 0.7), fontSize: 14),
+          filled: true,
+          fillColor: t.inputFillColor,
+          prefixIcon: prefixIcon,
+          prefixIconConstraints: prefixIcon != null
+              ? const BoxConstraints(minWidth: 52, minHeight: 0)
+              : null,
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(t.inputRadius),
+            borderSide: BorderSide(color: t.inputBorderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(t.inputRadius),
+            borderSide: BorderSide(color: t.inputBorderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(t.inputRadius),
+            borderSide: BorderSide(color: t.inputFocusBorderColor, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(t.inputRadius),
+            borderSide: BorderSide(color: t.errorColor),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(t.inputRadius),
+            borderSide: BorderSide(color: t.errorColor, width: 1.5),
+          ),
+          errorStyle: TextStyle(color: t.errorColor, fontSize: 11),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        validator: validator,
+        onFieldSubmitted: (_) => onSubmitted?.call(),
       ),
-      cursorColor: _kBlue,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: const TextStyle(color: _kSubtext, fontSize: 13),
-        hintStyle: TextStyle(color: _kSubtext.withValues(alpha: 0.7), fontSize: 14),
-        filled: true,
-        fillColor: _kInputBg,
-        prefixIcon: prefixIcon,
-        prefixIconConstraints: prefixIcon != null
-            ? const BoxConstraints(minWidth: 52, minHeight: 0)
-            : null,
-        suffixIcon: suffixIcon,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _kInputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _kInputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _kInputFocusBorder, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _kError),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _kError, width: 1.5),
-        ),
-        errorStyle: const TextStyle(color: _kError, fontSize: 11),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
+  // ── Animated card preview ───────────────────────────────
+
+  Widget _buildCardPreview() {
+    final t = _t;
+    final digits = _rawNumber;
+    final padded = digits.padRight(16, '\u2022');
+    final groups = [
+      padded.substring(0, 4),
+      padded.length > 4 ? padded.substring(4, 8) : '    ',
+      padded.length > 8 ? padded.substring(8, 12) : '    ',
+      padded.length > 12 ? padded.substring(12) : '    ',
+    ];
+    final cardNumber = groups.join('  ');
+    final displayName = _nameController.text.trim().isEmpty
+        ? 'CARD HOLDER'
+        : _nameController.text.trim().toUpperCase();
+    final displayExpiry =
+        _expiryController.text.isEmpty ? 'MM/YY' : _expiryController.text;
+    final displayCvv = _cvvController.text.isEmpty
+        ? '\u2022\u2022\u2022'
+        : '\u2022' * _cvvController.text.length;
+
+    return AnimatedBuilder(
+      animation: _flipAnimation,
+      builder: (_, _) {
+        final angle = _flipAnimation.value * pi;
+        final showBack = angle > pi / 2;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0015)
+            ..rotateY(angle),
+          child: showBack
+              ? Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()..rotateY(pi),
+                  child: _buildCardBack(t, displayCvv),
+                )
+              : _buildCardFront(t, cardNumber, displayName, displayExpiry),
+        );
+      },
+    );
+  }
+
+  Widget _buildCardFront(
+      PaypalCardFormTheme t, String number, String name, String expiry) {
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      validator: validator,
-      onFieldSubmitted: (_) => onSubmitted?.call(),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // EMV chip
+              Container(
+                width: 36,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.amber.shade300, Colors.amber.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              _cardType.previewBadge,
+            ],
+          ),
+          const Spacer(),
+          Text(
+            number,
+            style: TextStyle(
+              color: t.cardTextColor,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 2.5,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'CARD HOLDER',
+                    style: TextStyle(
+                      color: t.cardTextColor.withValues(alpha: 0.65),
+                      fontSize: 9,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: t.cardTextColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'EXPIRES',
+                    style: TextStyle(
+                      color: t.cardTextColor.withValues(alpha: 0.65),
+                      fontSize: 9,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  Text(
+                    expiry,
+                    style: TextStyle(
+                      color: t.cardTextColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardBack(PaypalCardFormTheme t, String cvv) {
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        gradient: t.cardGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 30),
+          // Magnetic stripe
+          Container(
+            height: 44,
+            color: Colors.black.withValues(alpha: 0.8),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                // Signature strip
+                Expanded(
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // CVV box
+                Container(
+                  width: 56,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    cvv,
+                    style: TextStyle(
+                      color: t.primaryColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'CVV',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: t.cardTextColor.withValues(alpha: 0.65),
+                fontSize: 9,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = _t;
     return Container(
       decoration: BoxDecoration(
-        color: _kBg,
-        borderRadius: BorderRadius.circular(20),
+        color: t.backgroundColor,
+        borderRadius: BorderRadius.circular(t.containerRadius),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -314,7 +565,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _kInputBorder,
+                  color: t.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -325,13 +576,13 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 children: [
-                  const _PaypalWordmark(),
+                  _PaypalWordmark(theme: t),
                   const SizedBox(height: 12),
                   if (widget.amount != null) ...[
                     Text(
                       '\$${widget.amount}',
-                      style: const TextStyle(
-                        color: _kNavy,
+                      style: TextStyle(
+                        color: t.primaryColor,
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.5,
@@ -340,8 +591,8 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                     const SizedBox(height: 2),
                     Text(
                       widget.currency ?? 'USD',
-                      style: const TextStyle(
-                        color: _kSubtext,
+                      style: TextStyle(
+                        color: t.secondaryColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -349,7 +600,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                     const SizedBox(height: 16),
                   ] else
                     const SizedBox(height: 8),
-                  Divider(color: _kDivider, height: 1),
+                  Divider(color: t.dividerColor, height: 1),
                 ],
               ),
             ),
@@ -359,11 +610,15 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ── Animated card preview ──
+                  _buildCardPreview(),
+                  const SizedBox(height: 20),
+
                   // ── Section label ──
-                  const Text(
+                  Text(
                     'Add debit or credit card',
                     style: TextStyle(
-                      color: _kNavy,
+                      color: t.primaryColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -383,6 +638,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                       _CardNumberFormatter(),
                     ],
                     prefixIcon: SizedBox(
+                      key: const Key('paypal_card_type_icon'),
                       width: 52,
                       child: Center(child: _cardType.fieldIcon),
                     ),
@@ -407,10 +663,10 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                             FilteringTextInputFormatter.digitsOnly,
                             _ExpiryFormatter(),
                           ],
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.calendar_today_outlined,
                             size: 16,
-                            color: _kSubtext,
+                            color: t.inputLabelColor,
                           ),
                           onSubmitted: () =>
                               FocusScope.of(context).requestFocus(_cvvFocus),
@@ -436,7 +692,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               size: 18,
-                              color: _kSubtext,
+                              color: t.inputLabelColor,
                             ),
                             onPressed: () =>
                                 setState(() => _obscureCvv = !_obscureCvv),
@@ -504,7 +760,7 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Divider(color: _kDivider, height: 1),
+                  Divider(color: t.dividerColor, height: 1),
                   const SizedBox(height: 16),
 
                   // Complete Order button
@@ -513,21 +769,23 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                     child: ElevatedButton(
                       onPressed: _busy ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _kBlue,
-                        disabledBackgroundColor: _kBlue.withValues(alpha: 0.45),
-                        foregroundColor: Colors.white,
+                        backgroundColor: t.buttonColor,
+                        disabledBackgroundColor:
+                            t.buttonColor.withValues(alpha: 0.45),
+                        foregroundColor: t.buttonTextColor,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
+                          borderRadius:
+                              BorderRadius.circular(t.buttonRadius),
                         ),
                         elevation: 0,
                       ),
                       child: _submitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: t.buttonTextColor,
                               ),
                             )
                           : Text(
@@ -546,15 +804,15 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                   // Payment method rights link
                   GestureDetector(
                     onTap: () {},
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         'Payment method rights',
                         style: TextStyle(
-                          color: _kLightBlue,
+                          color: t.accentColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           decoration: TextDecoration.underline,
-                          decorationColor: _kLightBlue,
+                          decorationColor: t.accentColor,
                         ),
                       ),
                     ),
@@ -566,12 +824,12 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.lock_outline, size: 12, color: _kSubtext),
+                      Icon(Icons.lock_outline, size: 12, color: t.secondaryColor),
                       const SizedBox(width: 4),
                       Text(
                         'Secured by PayPal',
                         style: TextStyle(
-                          color: _kSubtext,
+                          color: t.secondaryColor,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -592,17 +850,19 @@ class _PaypalCardFormState extends State<PaypalCardForm> {
 // ── PayPal Wordmark ────────────────────────────────────────
 
 class _PaypalWordmark extends StatelessWidget {
-  const _PaypalWordmark();
+  const _PaypalWordmark({required this.theme});
+
+  final PaypalCardFormTheme theme;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Pay',
           style: TextStyle(
-            color: _kLightBlue,
+            color: theme.accentColor,
             fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
@@ -610,7 +870,7 @@ class _PaypalWordmark extends StatelessWidget {
         Text(
           'Pal',
           style: TextStyle(
-            color: _kBlue,
+            color: theme.primaryColor,
             fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
@@ -713,11 +973,93 @@ extension _CardTypeLogoExt on _CardType {
         return const Icon(
           Icons.credit_card_outlined,
           size: 20,
-          color: _kSubtext,
+          color: Color(0xFF6C7378),
         );
     }
   }
 
+}
+
+extension _CardTypePreviewExt on _CardType {
+  Widget get previewBadge {
+    switch (this) {
+      case _CardType.visa:
+        return const Text(
+          'VISA',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            fontStyle: FontStyle.italic,
+            letterSpacing: 1,
+          ),
+        );
+      case _CardType.mastercard:
+        return SizedBox(
+          width: 44,
+          height: 28,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEB001B),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF79E1B).withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      case _CardType.amex:
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Text(
+            'AMEX',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+        );
+      case _CardType.discover:
+        return const Text(
+          'DISCOVER',
+          style: TextStyle(
+            color: Color(0xFFFF6600),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        );
+      case _CardType.unknown:
+        return Icon(
+          Icons.credit_card,
+          color: Colors.white.withValues(alpha: 0.7),
+          size: 24,
+        );
+    }
+  }
 }
 
 // ── Input formatters ────────────────────────────────────

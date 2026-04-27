@@ -18,3 +18,4 @@ export 'src/domain/entities/vault.dart';
 export 'src/domain/repositories/paypal_repository.dart';
 export 'src/flutter_paypal_payment_plugin.dart';
 export 'src/ui/paypal_card_form.dart';
+export 'src/ui/paypal_card_form_theme.dart';

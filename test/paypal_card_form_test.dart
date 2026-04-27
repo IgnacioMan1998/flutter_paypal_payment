@@ -181,7 +181,13 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '4111');
       await tester.pump();
-      expect(find.text('VISA'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('paypal_card_type_icon')),
+          matching: find.text('VISA'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('detects Mastercard from 51xx prefix', (tester) async {
@@ -198,7 +204,13 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('paypal_card_number')), '3400');
       await tester.pump();
-      expect(find.text('AMEX'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('paypal_card_type_icon')),
+          matching: find.text('AMEX'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('detects Discover from 6011 prefix', (tester) async {
