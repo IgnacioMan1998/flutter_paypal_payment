@@ -1,4 +1,3 @@
-import 'dart:math' show pi;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,9 +95,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   final _nameFocus = FocusNode();
   final _zipFocus = FocusNode();
 
-  late final AnimationController _flipController;
-  late final Animation<double> _flipAnimation;
-
   bool _submitting = false;
   bool _obscureCvv = true;
   _CardType _cardType = _CardType.unknown;
@@ -114,21 +110,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   @override
   void initState() {
     super.initState();
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _flipAnimation = CurvedAnimation(
-      parent: _flipController,
-      curve: Curves.easeInOut,
-    );
-    _cvvFocus.addListener(() {
-      if (_cvvFocus.hasFocus) {
-        _flipController.forward();
-      } else {
-        _flipController.reverse();
-      }
-    });
     _numberController.addListener(() {
       setState(() => _cardType = _CardTypeExt.detect(_rawNumber));
     });
@@ -136,7 +117,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
   @override
   void dispose() {
-    _flipController.dispose();
     _numberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
@@ -303,233 +283,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         ),
         validator: validator,
         onFieldSubmitted: (_) => onSubmitted?.call(),
-      ),
-    );
-  }
-
-  // ── Animated card preview ───────────────────────────────
-
-  Widget _buildCardPreview() {
-    final t = _t;
-    final digits = _rawNumber;
-    final padded = digits.padRight(16, '\u2022');
-    final groups = [
-      padded.substring(0, 4),
-      padded.length > 4 ? padded.substring(4, 8) : '    ',
-      padded.length > 8 ? padded.substring(8, 12) : '    ',
-      padded.length > 12 ? padded.substring(12) : '    ',
-    ];
-    final cardNumber = groups.join('  ');
-    final displayName = _nameController.text.trim().isEmpty
-        ? 'CARD HOLDER'
-        : _nameController.text.trim().toUpperCase();
-    final displayExpiry =
-        _expiryController.text.isEmpty ? 'MM/YYYY' : _expiryController.text;
-    final displayCvv = _cvvController.text.isEmpty
-        ? '\u2022\u2022\u2022'
-        : '\u2022' * _cvvController.text.length;
-
-    return AnimatedBuilder(
-      animation: _flipAnimation,
-      builder: (_, _) {
-        final angle = _flipAnimation.value * pi;
-        final showBack = angle > pi / 2;
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.0015)
-            ..rotateY(angle),
-          child: showBack
-              ? Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..rotateY(pi),
-                  child: _buildCardBack(t, displayCvv),
-                )
-              : _buildCardFront(t, cardNumber, displayName, displayExpiry),
-        );
-      },
-    );
-  }
-
-  Widget _buildCardFront(
-      PaypalCardFormTheme t, String number, String name, String expiry) {
-    return Container(
-      height: 190,
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // EMV chip
-              Container(
-                width: 36,
-                height: 28,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.amber.shade300, Colors.amber.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              _cardType.previewBadge,
-            ],
-          ),
-          const Spacer(),
-          Text(
-            number,
-            style: TextStyle(
-              color: t.cardTextColor,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 2.5,
-              fontFamily: 'monospace',
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'CARD HOLDER',
-                    style: TextStyle(
-                      color: t.cardTextColor.withValues(alpha: 0.65),
-                      fontSize: 9,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  Text(
-                    name,
-                    style: TextStyle(
-                      color: t.cardTextColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'EXPIRES',
-                    style: TextStyle(
-                      color: t.cardTextColor.withValues(alpha: 0.65),
-                      fontSize: 9,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  Text(
-                    expiry,
-                    style: TextStyle(
-                      color: t.cardTextColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardBack(PaypalCardFormTheme t, String cvv) {
-    return Container(
-      height: 190,
-      decoration: BoxDecoration(
-        gradient: t.cardGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 30),
-          // Magnetic stripe
-          Container(
-            height: 44,
-            color: Colors.black.withValues(alpha: 0.8),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                // Signature strip
-                Expanded(
-                  child: Container(
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // CVV box
-                Container(
-                  width: 56,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    cvv,
-                    style: TextStyle(
-                      color: t.primaryColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'CVV',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: t.cardTextColor.withValues(alpha: 0.65),
-                fontSize: 9,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -861,39 +614,6 @@ class _PaypalCardFormState extends State<PaypalCardForm>
   }
 }
 
-// ── PayPal Wordmark ────────────────────────────────────────
-
-class _PaypalWordmark extends StatelessWidget {
-  const _PaypalWordmark({required this.theme});
-
-  final PaypalCardFormTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Pay',
-          style: TextStyle(
-            color: theme.accentColor,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Text(
-          'Pal',
-          style: TextStyle(
-            color: theme.primaryColor,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Card type detection ─────────────────────────────────
 
 enum _CardType { visa, mastercard, amex, discover, unknown }
@@ -992,88 +712,6 @@ extension _CardTypeLogoExt on _CardType {
     }
   }
 
-}
-
-extension _CardTypePreviewExt on _CardType {
-  Widget get previewBadge {
-    switch (this) {
-      case _CardType.visa:
-        return const Text(
-          'VISA',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            fontStyle: FontStyle.italic,
-            letterSpacing: 1,
-          ),
-        );
-      case _CardType.mastercard:
-        return SizedBox(
-          width: 44,
-          height: 28,
-          child: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEB001B),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF79E1B).withValues(alpha: 0.85),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      case _CardType.amex:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Text(
-            'AMEX',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1,
-            ),
-          ),
-        );
-      case _CardType.discover:
-        return const Text(
-          'DISCOVER',
-          style: TextStyle(
-            color: Color(0xFFFF6600),
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-          ),
-        );
-      case _CardType.unknown:
-        return Icon(
-          Icons.credit_card,
-          color: Colors.white.withValues(alpha: 0.7),
-          size: 24,
-        );
-    }
-  }
 }
 
 // ── Input formatters ────────────────────────────────────

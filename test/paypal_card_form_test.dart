@@ -43,10 +43,9 @@ Future<void> _fillValidCard(WidgetTester tester) async {
 
 void main() {
   group('PaypalCardForm — rendering', () {
-    testWidgets('renders PayPal logo', (tester) async {
+    testWidgets('renders Secured by PayPal footer', (tester) async {
       await tester.pumpWidget(_wrap(_form()));
-      expect(find.text('Pay'), findsOneWidget);
-      expect(find.text('Pal'), findsOneWidget);
+      expect(find.text('Secured by PayPal'), findsOneWidget);
     });
 
     testWidgets('renders amount when provided', (tester) async {
@@ -80,11 +79,6 @@ void main() {
     testWidgets('renders section header', (tester) async {
       await tester.pumpWidget(_wrap(_form()));
       expect(find.text('Add debit or credit card'), findsOneWidget);
-    });
-
-    testWidgets('renders Secured by PayPal footer', (tester) async {
-      await tester.pumpWidget(_wrap(_form()));
-      expect(find.text('Secured by PayPal'), findsOneWidget);
     });
 
     testWidgets('disables button when isLoading=true', (tester) async {
