@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 
 /// Log severity levels for [PaypalLogger].
 enum PaypalLogLevel {
+  /// Ultra-verbose tracing (individual HTTP headers, token bytes).
+  /// **Never enable in production.**
+  trace,
+
   /// Verbose diagnostic output (request bodies, token values).
   /// **Never enable in production.**
   debug,
@@ -47,6 +51,8 @@ abstract final class PaypalLogger {
   ///
   /// Defaults to [PaypalLogLevel.debug] in debug mode and
   /// [PaypalLogLevel.info] in profile/release mode.
+  ///
+  /// Set to [PaypalLogLevel.trace] to enable ultra-verbose HTTP tracing.
   static PaypalLogLevel minLevel =
       kDebugMode ? PaypalLogLevel.debug : PaypalLogLevel.info;
 
@@ -60,6 +66,13 @@ abstract final class PaypalLogger {
   ])? customHandler;
 
   // ── Public API ────────────────────────────────────────────
+
+  /// Emit a [PaypalLogLevel.trace] message.
+  ///
+  /// Use for ultra-verbose output: raw HTTP headers, token bytes, serialization.
+  /// **Never enable in production.**
+  static void trace(String message, {String tag = _defaultTag}) =>
+      _emit(PaypalLogLevel.trace, tag, message);
 
   /// Emit a [PaypalLogLevel.debug] message.
   static void debug(String message, {String tag = _defaultTag}) =>
@@ -115,6 +128,7 @@ abstract final class PaypalLogger {
   }
 
   static String _prefix(PaypalLogLevel level) => switch (level) {
+        PaypalLogLevel.trace => 'TRACE',
         PaypalLogLevel.debug => 'DEBUG',
         PaypalLogLevel.info => 'INFO ',
         PaypalLogLevel.warning => 'WARN ',

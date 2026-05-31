@@ -93,3 +93,51 @@ class PaypalSubscriptionActivatedEvent {
   const PaypalSubscriptionActivatedEvent(this.subscriptionId);
   final String subscriptionId;
 }
+
+// ═══════════════════════════════════════════════════════════
+// Refund events
+// ═══════════════════════════════════════════════════════════
+
+/// Emitted when a refund is successfully processed.
+class PaypalRefundCompletedEvent {
+  const PaypalRefundCompletedEvent({
+    required this.captureId,
+    required this.refundId,
+    this.amount,
+    this.currencyCode,
+  });
+  final String captureId;
+  final String refundId;
+  final String? amount;
+  final String? currencyCode;
+}
+
+/// Emitted when a refund attempt fails.
+class PaypalRefundFailedEvent {
+  const PaypalRefundFailedEvent({
+    required this.captureId,
+    required this.failure,
+  });
+  final String captureId;
+  final PaymentFailure failure;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Card payment started event
+// ═══════════════════════════════════════════════════════════
+
+/// Emitted just before a card payment is submitted to the SDK.
+class PaypalCardPaymentStartedEvent {
+  const PaypalCardPaymentStartedEvent(this.orderId);
+  final String orderId;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Vault started event
+// ═══════════════════════════════════════════════════════════
+
+/// Emitted just before a vault (save payment method) operation begins.
+class PaypalVaultStartedEvent {
+  const PaypalVaultStartedEvent(this.setupTokenId);
+  final String setupTokenId;
+}

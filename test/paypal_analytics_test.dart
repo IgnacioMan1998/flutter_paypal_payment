@@ -255,5 +255,235 @@ void main() {
         expect(str, contains('active'));
       });
     });
+
+    // ── revenueByPlan ─────────────────────────────────────
+
+    group('revenueByPlan()', () {
+      Map<String, dynamic> _subWithPlan({
+        required String status,
+        required double lastPaymentValue,
+        required String planId,
+        String intervalUnit = 'MONTH',
+        int intervalCount = 1,
+      }) {
+        final base = {
+          'status': status,
+          'plan': {'id': planId},
+          'billing_info': {
+            'last_payment': {
+              'amount': {
+                'value': lastPaymentValue.toStringAsFixed(2),
+                'currency_code': 'USD',
+              },
+            },
+          },
+          'billing_cycles': [
+            {
+              'tenure_type': 'REGULAR',
+              'frequency': {
+                'interval_unit': intervalUnit,
+                'interval_count': intervalCount,
+              },
+            },
+          ],
+        };
+        return base;
+      }
+
+      test('groups MRR by plan ID for active subs', () {
+        final subs = [
+          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 10, planId: 'P-A'),
+          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 20, planId: 'P-A'),
+          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 15, planId: 'P-B'),
+          _subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
+        ];
+
+        final result = PaypalSubscriptionAnalytics.revenueByPlan(subs);
+        expect(result['P-A'], closeTo(30.0, 0.01));
+        expect(result['P-B'], closeTo(15.0, 0.01));
+        expect(result.containsKey('CANCELLED'), isFalse);
+      });
+
+      test('returns empty map for no active subs', () {
+        final subs = [
+          _subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
+        ];
+
+        expect(PaypalSubscriptionAnalytics.revenueByPlan(subs), isEmpty);
+      });
+
+      test('sorted by MRR descending', () {
+        final subs = [
+          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 5, planId: 'P-LOW'),
+          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 100, planId: 'P-HIGH'),
+        ];
+
+        final result = PaypalSubscriptionAnalytics.revenueByPlan(subs);
+        final keys = result.keys.toList();
+        expect(keys.first, 'P-HIGH');
+        expect(keys.last, 'P-LOW');
+      });
+
+      test('handles unknown plan_id gracefully', () {
+        final sub = {
+          'status': 'ACTIVE',
+          'billing_info': {
+            'last_payment': {
+              'amount': {'value': '10.00', 'currency_code': 'USD'},
+            },
+          },
+          'billing_cycles': [
+            {
+              'tenure_type': 'REGULAR',
+              'frequency': {'interval_unit': 'MONTH', 'interval_count': 1},
+            },
+          ],
+        };
+
+        final result = PaypalSubscriptionAnalytics.revenueByPlan([sub]);
+        expect(result.containsKey('unknown'), isTrue);
+      });
+    });
+
+    // ── revenueByMonth ────────────────────────────────────
+
+    group('revenueByMonth()', () {
+      Map<String, dynamic> _subWithTime({
+        required String status,
+        required double lastPaymentValue,
+        required String lastPaymentTime,
+        String intervalUnit = 'MONTH',
+        int intervalCount = 1,
+      }) {
+        return {
+          'status': status,
+          'billing_info': {
+            'last_payment': {
+              'amount': {
+                'value': lastPaymentValue.toStringAsFixed(2),
+                'currency_code': 'USD',
+              },
+              'time': lastPaymentTime,
+            },
+          },
+          'billing_cycles': [
+            {
+              'tenure_type': 'REGULAR',
+              'frequency': {
+                'interval_unit': intervalUnit,
+                'interval_count': intervalCount,
+              },
+            },
+          ],
+        };
+      }
+
+      test('groups MRR by YYYY-MM for active subs', () {
+        final subs = [
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 20, lastPaymentTime: '2025-01-20T10:00:00Z'),
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 15, lastPaymentTime: '2025-02-05T10:00:00Z'),
+        ];
+
+        final result = PaypalSubscriptionAnalytics.revenueByMonth(subs);
+        expect(result['2025-01'], closeTo(30.0, 0.01));
+        expect(result['2025-02'], closeTo(15.0, 0.01));
+      });
+
+      test('ignores cancelled subs', () {
+        final subs = [
+          _subWithTime(status: 'CANCELLED', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
+        ];
+
+        expect(PaypalSubscriptionAnalytics.revenueByMonth(subs), isEmpty);
+      });
+
+      test('ignores subs without last payment time', () {
+        final sub = {
+          'status': 'ACTIVE',
+          'billing_info': {
+            'last_payment': {
+              'amount': {'value': '10.00', 'currency_code': 'USD'},
+              // no 'time' key
+            },
+          },
+          'billing_cycles': [
+            {
+              'tenure_type': 'REGULAR',
+              'frequency': {'interval_unit': 'MONTH', 'interval_count': 1},
+            },
+          ],
+        };
+
+        expect(PaypalSubscriptionAnalytics.revenueByMonth([sub]), isEmpty);
+      });
+
+      test('returns months sorted ascending', () {
+        final subs = [
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-03-01T00:00:00Z'),
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-01T00:00:00Z'),
+          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-02-01T00:00:00Z'),
+        ];
+
+        final keys = PaypalSubscriptionAnalytics.revenueByMonth(subs).keys.toList();
+        expect(keys, ['2025-01', '2025-02', '2025-03']);
+      });
+    });
+
+    // ── revenueTrend ──────────────────────────────────────
+
+    group('revenueTrend()', () {
+      Map<String, dynamic> _subWithTime(String time, double value) => {
+        'status': 'ACTIVE',
+        'billing_info': {
+          'last_payment': {
+            'amount': {'value': value.toStringAsFixed(2), 'currency_code': 'USD'},
+            'time': time,
+          },
+        },
+        'billing_cycles': [
+          {
+            'tenure_type': 'REGULAR',
+            'frequency': {'interval_unit': 'MONTH', 'interval_count': 1},
+          },
+        ],
+      };
+
+      test('first month has null growthPercent', () {
+        final subs = [_subWithTime('2025-01-01T00:00:00Z', 100)];
+        final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
+        expect(trend.first.growthPercent, isNull);
+      });
+
+      test('positive growth detected', () {
+        final subs = [
+          _subWithTime('2025-01-01T00:00:00Z', 100),
+          _subWithTime('2025-02-01T00:00:00Z', 120),
+        ];
+        final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
+        expect(trend[1].isGrowth, isTrue);
+        expect(trend[1].growthPercent, closeTo(20.0, 0.01));
+      });
+
+      test('negative growth (decline) detected', () {
+        final subs = [
+          _subWithTime('2025-01-01T00:00:00Z', 100),
+          _subWithTime('2025-02-01T00:00:00Z', 80),
+        ];
+        final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
+        expect(trend[1].isDecline, isTrue);
+        expect(trend[1].growthPercent, closeTo(-20.0, 0.01));
+      });
+
+      test('returns empty list when no data', () {
+        expect(PaypalSubscriptionAnalytics.revenueTrend([]), isEmpty);
+      });
+
+      test('MonthlyRevenueTrend toString includes month and mrr', () {
+        const t = MonthlyRevenueTrend(month: '2025-01', mrr: 100.0);
+        expect(t.toString(), contains('2025-01'));
+        expect(t.toString(), contains('100.0'));
+      });
+    });
   });
 }

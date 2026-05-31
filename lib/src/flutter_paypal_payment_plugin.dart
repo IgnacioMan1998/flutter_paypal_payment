@@ -16,6 +16,8 @@ import 'domain/entities/paypal_config.dart';
 import 'domain/entities/vault.dart';
 import 'domain/repositories/paypal_repository.dart';
 import 'events/paypal_event_bus.dart';
+import 'events/paypal_events.dart';
+import 'funding/funding_eligibility.dart';
 import 'logger/paypal_logger.dart';
 
 /// Main entry point for the PayPal Payment plugin.
@@ -145,6 +147,7 @@ class FlutterPaypalPayment {
       'Starting card payment — orderId: ${request.orderId}',
       tag: 'FlutterPaypalPayment',
     );
+    events.emitCardPaymentStarted(PaypalCardPaymentStartedEvent(request.orderId));
     final result = await _repository.processCardPayment(request);
     result.fold(
       (f) {
@@ -226,6 +229,7 @@ class FlutterPaypalPayment {
   Future<Either<VaultFailure, VaultSuccess>> vaultPaypal(
       VaultPaypalRequest request) async {
     PaypalLogger.info('Vaulting PayPal account', tag: 'FlutterPaypalPayment');
+    events.emitVaultStarted(PaypalVaultStartedEvent(request.setupTokenId));
     final result = await _repository.vaultPaypal(request);
     result.fold(
       (f) {
@@ -248,6 +252,7 @@ class FlutterPaypalPayment {
   Future<Either<VaultFailure, VaultSuccess>> vaultCard(
       VaultCardRequest request) async {
     PaypalLogger.info('Vaulting card', tag: 'FlutterPaypalPayment');
+    events.emitVaultStarted(PaypalVaultStartedEvent(request.setupTokenId));
     final result = await _repository.vaultCard(request);
     result.fold(
       (f) {
@@ -472,11 +477,22 @@ class FlutterPaypalPayment {
     );
 
     try {
-      return await orderService.refundCapture(
+      final result = await orderService.refundCapture(
         captureId,
         amount: amount,
         currencyCode: currencyCode,
       );
+      result.fold(
+        (f) => events.emitRefundFailed(
+            PaypalRefundFailedEvent(captureId: captureId, failure: f)),
+        (data) => events.emitRefundCompleted(PaypalRefundCompletedEvent(
+          captureId: captureId,
+          refundId: data['id'] as String? ?? '',
+          amount: amount,
+          currencyCode: currencyCode,
+        )),
+      );
+      return result;
     } finally {
       orderService.dispose();
     }
@@ -1171,5 +1187,49 @@ class FlutterPaypalPayment {
     } finally {
       orderService.dispose();
     }
+  }
+
+  // ─── Funding Eligibility ───
+
+  /// Check which PayPal funding sources are eligible for the current buyer.
+  ///
+  /// Results are cached for 5 minutes by default. Pass [forceRefresh] to
+  /// bypass the cache.
+  ///
+  /// ```dart
+  /// final result = await paypal.checkFundingEligibility(
+  ///   clientSecret: 'SECRET',
+  ///   currencyCode: 'USD',
+  ///   buyerCountryCode: 'US',
+  /// );
+  /// result.fold(
+  ///   (f) => print(f.message),
+  ///   (eligibility) {
+  ///     if (eligibility.payLaterEligible) showPayLaterBadge();
+  ///   },
+  /// );
+  /// ```
+  Future<Either<PaymentFailure, FundingEligibilityResult>>
+      checkFundingEligibility({
+    required String clientSecret,
+    String currencyCode = 'USD',
+    String? buyerCountryCode,
+    bool forceRefresh = false,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+    return PaypalFundingEligibility.check(
+      clientId: config.clientId,
+      clientSecret: clientSecret,
+      environment: config.environment,
+      currencyCode: currencyCode,
+      buyerCountryCode: buyerCountryCode,
+      forceRefresh: forceRefresh,
+    );
   }
 }

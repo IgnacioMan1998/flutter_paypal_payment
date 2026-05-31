@@ -114,10 +114,106 @@ abstract final class PaypalSubscriptionAnalytics {
     );
   }
 
+  // ── Revenue segmentation ──────────────────────────────────
+
+  /// MRR grouped by `plan_id`.
+  ///
+  /// Returns a map of `planId → MRR` for all ACTIVE subscriptions.
+  /// Useful for identifying which plans drive the most revenue.
+  ///
+  /// ```dart
+  /// final byPlan = PaypalSubscriptionAnalytics.revenueByPlan(subs);
+  /// byPlan.forEach((planId, mrr) => print('$planId: \$$mrr'));
+  /// ```
+  static Map<String, double> revenueByPlan(
+      List<Map<String, dynamic>> subscriptions) {
+    final result = <String, double>{};
+    for (final sub in subscriptions) {
+      if (_status(sub) != 'ACTIVE') continue;
+      final planId = _planId(sub);
+      result[planId] = (result[planId] ?? 0.0) + _monthlyValue(sub);
+    }
+    return Map.fromEntries(
+      result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)),
+    );
+  }
+
+  /// MRR grouped by calendar month of the last payment.
+  ///
+  /// Returns a sorted map of `'YYYY-MM' → revenue`. Only ACTIVE subscriptions
+  /// with a parseable `billing_info.last_payment.time` are included.
+  ///
+  /// ```dart
+  /// final byMonth = PaypalSubscriptionAnalytics.revenueByMonth(subs);
+  /// byMonth.forEach((month, rev) => print('$month: \$$rev'));
+  /// ```
+  static Map<String, double> revenueByMonth(
+      List<Map<String, dynamic>> subscriptions) {
+    final result = <String, double>{};
+    for (final sub in subscriptions) {
+      if (_status(sub) != 'ACTIVE') continue;
+      final key = _billingMonth(sub);
+      if (key == null) continue;
+      result[key] = (result[key] ?? 0.0) + _monthlyValue(sub);
+    }
+    // Return sorted by month ascending
+    final sorted = result.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Map.fromEntries(sorted);
+  }
+
+  /// Growth trend: month-over-month MRR change.
+  ///
+  /// Returns an ordered list of [MonthlyRevenueTrend] objects from the
+  /// earliest to most recent month found in the subscription data.
+  ///
+  /// ```dart
+  /// final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
+  /// for (final t in trend) {
+  ///   print('${t.month}: \$${t.mrr} (${t.growthPercent?.toStringAsFixed(1)}% MoM)');
+  /// }
+  /// ```
+  static List<MonthlyRevenueTrend> revenueTrend(
+      List<Map<String, dynamic>> subscriptions) {
+    final byMonth = revenueByMonth(subscriptions);
+    if (byMonth.isEmpty) return [];
+    final months = byMonth.keys.toList();
+    final trends = <MonthlyRevenueTrend>[];
+    for (var i = 0; i < months.length; i++) {
+      final month = months[i];
+      final mrr = byMonth[month]!;
+      double? growth;
+      if (i > 0) {
+        final prev = byMonth[months[i - 1]]!;
+        growth = prev == 0 ? null : (mrr - prev) / prev * 100;
+      }
+      trends.add(MonthlyRevenueTrend(month: month, mrr: mrr, growthPercent: growth));
+    }
+    return trends;
+  }
+
   // ── Internal helpers ──────────────────────────────────────
 
   static String _status(Map<String, dynamic> sub) =>
       (sub['status'] as String? ?? '').toUpperCase();
+
+  static String _planId(Map<String, dynamic> sub) {
+    final plan = sub['plan'] as Map<String, dynamic>?;
+    return plan?['id'] as String? ??
+        sub['plan_id'] as String? ??
+        'unknown';
+  }
+
+  static String? _billingMonth(Map<String, dynamic> sub) {
+    final billingInfo = sub['billing_info'] as Map<String, dynamic>?;
+    final lastPayment =
+        billingInfo?['last_payment'] as Map<String, dynamic>?;
+    final timeStr = lastPayment?['time'] as String?;
+    if (timeStr == null) return null;
+    final dt = DateTime.tryParse(timeStr);
+    if (dt == null) return null;
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+  }
 
   /// Extract the monthly-normalised billing value from a subscription.
   static double _monthlyValue(Map<String, dynamic> sub) {
@@ -208,4 +304,34 @@ class SubscriptionRevenueReport {
       'SubscriptionRevenueReport(mrr: $mrr, arr: $arr, arpu: $arpu, '
       'churnRate: ${(churnRate * 100).toStringAsFixed(1)}%, '
       'active: $activeSubscriptions, total: $totalSubscriptions)';
+}
+
+/// A single month's MRR data point in a growth trend series.
+class MonthlyRevenueTrend {
+  const MonthlyRevenueTrend({
+    required this.month,
+    required this.mrr,
+    this.growthPercent,
+  });
+
+  /// Calendar month in `YYYY-MM` format.
+  final String month;
+
+  /// MRR for this month.
+  final double mrr;
+
+  /// Month-over-month growth as a percentage, e.g. `12.5` for +12.5%.
+  /// `null` for the first month in the series (no prior period).
+  final double? growthPercent;
+
+  /// `true` when MRR grew compared to the previous month.
+  bool get isGrowth => (growthPercent ?? 0) > 0;
+
+  /// `true` when MRR declined compared to the previous month.
+  bool get isDecline => (growthPercent ?? 0) < 0;
+
+  @override
+  String toString() =>
+      'MonthlyRevenueTrend(month: $month, mrr: $mrr, '
+      'growth: ${growthPercent?.toStringAsFixed(1) ?? 'N/A'}%)';
 }

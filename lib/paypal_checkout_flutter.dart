@@ -45,3 +45,21 @@ export 'src/ui/paypal_card_form_theme.dart';
 export 'src/ui/paypal_checkout_button.dart';
 export 'src/ui/paypal_pay_later_banner.dart';
 export 'src/ui/paypal_vault_button.dart';
+export 'src/ui/paypal_subscription_widget.dart';
+export 'src/ui/paypal_debug_overlay.dart';
+
+// ── Platform interface ────────────────────────────────────
+export 'src/platform/paypal_platform.dart';
+
+// ── Funding eligibility ───────────────────────────────────
+export 'src/funding/funding_eligibility.dart';
+
+// ── Pay Later ─────────────────────────────────────────────
+export 'src/pay_later/pay_later_offer.dart';
+
+// ── Marketplace / Commerce Platform ──────────────────────
+export 'src/marketplace/paypal_marketplace_service.dart';
+
+// ── Web ───────────────────────────────────────────────────
+export 'src/web/paypal_js_sdk_loader.dart';
+export 'src/web/paypal_web_checkout.dart';

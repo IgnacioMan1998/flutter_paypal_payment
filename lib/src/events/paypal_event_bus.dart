@@ -51,6 +51,20 @@ class PaypalEventBus {
   final _subscriptionActivated =
       StreamController<PaypalSubscriptionActivatedEvent>.broadcast();
 
+  // ── Refunds ───────────────────────────────────────────────
+
+  final _refundCompleted =
+      StreamController<PaypalRefundCompletedEvent>.broadcast();
+  final _refundFailed =
+      StreamController<PaypalRefundFailedEvent>.broadcast();
+
+  // ── Card started / vault started ──────────────────────────
+
+  final _cardPaymentStarted =
+      StreamController<PaypalCardPaymentStartedEvent>.broadcast();
+  final _vaultStarted =
+      StreamController<PaypalVaultStartedEvent>.broadcast();
+
   // ── Public streams ────────────────────────────────────────
 
   /// Fires just before the native checkout sheet appears.
@@ -100,6 +114,20 @@ class PaypalEventBus {
   Stream<PaypalSubscriptionActivatedEvent> get subscriptionActivated =>
       _subscriptionActivated.stream;
 
+  /// Fires when a refund is successfully processed.
+  Stream<PaypalRefundCompletedEvent> get refundCompleted =>
+      _refundCompleted.stream;
+
+  /// Fires when a refund attempt fails.
+  Stream<PaypalRefundFailedEvent> get refundFailed => _refundFailed.stream;
+
+  /// Fires just before a card payment is submitted to the SDK.
+  Stream<PaypalCardPaymentStartedEvent> get cardPaymentStarted =>
+      _cardPaymentStarted.stream;
+
+  /// Fires just before a vault (save payment method) operation begins.
+  Stream<PaypalVaultStartedEvent> get vaultStarted => _vaultStarted.stream;
+
   // ── Internal emitters (package-private) ──────────────────
 
   void emitCheckoutStarted(PaypalCheckoutStartedEvent e) =>
@@ -129,6 +157,14 @@ class PaypalEventBus {
   void emitSubscriptionActivated(PaypalSubscriptionActivatedEvent e) =>
       _subscriptionActivated.add(e);
 
+  void emitRefundCompleted(PaypalRefundCompletedEvent e) =>
+      _refundCompleted.add(e);
+  void emitRefundFailed(PaypalRefundFailedEvent e) => _refundFailed.add(e);
+
+  void emitCardPaymentStarted(PaypalCardPaymentStartedEvent e) =>
+      _cardPaymentStarted.add(e);
+  void emitVaultStarted(PaypalVaultStartedEvent e) => _vaultStarted.add(e);
+
   // ── Lifecycle ─────────────────────────────────────────────
 
   /// Close all event streams. Call when the owning [FlutterPaypalPayment]
@@ -146,6 +182,10 @@ class PaypalEventBus {
     _subscriptionCancelled.close();
     _subscriptionSuspended.close();
     _subscriptionActivated.close();
+    _refundCompleted.close();
+    _refundFailed.close();
+    _cardPaymentStarted.close();
+    _vaultStarted.close();
   }
 
   /// Creates the event bus. Used only by [FlutterPaypalPayment].
