@@ -1,4 +1,4 @@
-## 0.3.0
+## 0.1.1
 
 - **New**: Federated plugin architecture — `PaypalPlatform` abstract interface (`plugin_platform_interface`) for custom platform implementations
 - **New**: Web platform support — `PaypalWebCheckout` (REST redirect flow) and `PaypalJsSdkLoader` (lazy JS SDK loading for Flutter Web)
