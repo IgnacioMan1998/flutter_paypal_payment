@@ -901,12 +901,18 @@ void main() {
   // ═══════════════════════════════════════════════════════
 
   group('PaypalFundingSource', () {
-    test('has paypal and payLater values', () {
-      expect(PaypalFundingSource.values.length, 2);
+    test('has paypal, payLater, venmo, credit, and debit values', () {
+      expect(PaypalFundingSource.values.length, 5);
       expect(PaypalFundingSource.values,
           contains(PaypalFundingSource.paypal));
       expect(PaypalFundingSource.values,
           contains(PaypalFundingSource.payLater));
+      expect(PaypalFundingSource.values,
+          contains(PaypalFundingSource.venmo));
+      expect(PaypalFundingSource.values,
+          contains(PaypalFundingSource.credit));
+      expect(PaypalFundingSource.values,
+          contains(PaypalFundingSource.debit));
     });
   });
 

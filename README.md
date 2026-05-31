@@ -78,7 +78,7 @@ A complete Flutter package for PayPal payments using the **native PayPal Mobile 
 - Full **3D Secure** support for card payments
 - Clean architecture: entities, repositories, mappers
 - `Either<Failure, Success>` with [dartz](https://pub.dev/packages/dartz) for error handling
-- **177 unit tests** with full coverage
+- **177 unit tests** with full coverage (257 as of v0.2.0)
 
 ## Requirements
 
@@ -91,7 +91,7 @@ A complete Flutter package for PayPal payments using the **native PayPal Mobile 
 
 ```yaml
 dependencies:
-  paypal_checkout_flutter: ^0.0.3
+  paypal_checkout_flutter: ^0.2.0
 ```
 
 ### Android Setup
@@ -610,6 +610,16 @@ lib/
     │   ├── mappers/                 # Dart ↔ Pigeon message mappers
     │   └── services/                # PaypalOrderService, PaypalSubscriptionService
     └── generated/                   # Auto-generated Pigeon code
+    ├── analytics/
+    │   └── paypal_subscription_analytics.dart  # MRR/ARR/ARPU/Churn
+    ├── events/
+    │   ├── paypal_event_bus.dart   # Reactive streams
+    │   └── paypal_events.dart      # Typed event classes
+    ├── logger/
+    │   └── paypal_logger.dart      # Structured logging
+    └── webhooks/
+        ├── paypal_webhook_event.dart   # Typed webhook models
+        └── paypal_webhook_helper.dart  # Verify & parse webhooks
 
 android/src/main/kotlin/
 └── FlutterPaypalPaymentPlugin.kt    # Native implementation (PayPal Android SDK)
@@ -669,6 +679,250 @@ result.fold(
 | `UPDATE_PRODUCT_ERROR`        | `updateProduct()` failed                                                           |
 | `VALIDATION_ERROR`            | Invalid input (e.g. malformed order ID)                                            |
 | `UNKNOWN_ERROR`               | Unexpected error not covered above                                                 |
+
+---
+
+## v0.2.0 — New Features
+
+### Event Stream Architecture
+
+Every payment lifecycle event is published on a strongly-typed broadcast stream. Subscribe in any widget without changing your business logic:
+
+```dart
+final paypal = FlutterPaypalPayment();
+
+@override
+void initState() {
+  super.initState();
+  // Listen to checkout completions
+  paypal.events.checkoutCompleted.listen((event) {
+    print('Paid! orderId=${event.result.orderId}');
+  });
+
+  // Listen to failures
+  paypal.events.checkoutFailed.listen((event) {
+    print('Failed: ${event.failure.message}');
+  });
+}
+
+@override
+void dispose() {
+  paypal.dispose(); // closes all stream controllers
+  super.dispose();
+}
+```
+
+**Available streams on `paypal.events`:**
+
+| Stream                  | Emits when…                        |
+| ----------------------- | ---------------------------------- |
+| `checkoutStarted`       | `pay()` begins                     |
+| `checkoutCompleted`     | `pay()` succeeds                   |
+| `checkoutCancelled`     | Buyer cancels in browser           |
+| `checkoutFailed`        | `pay()` returns failure            |
+| `cardCheckoutCompleted` | `payWithCard()` succeeds           |
+| `cardCheckoutFailed`    | `payWithCard()` returns failure    |
+| `vaultCompleted`        | `vaultPaypal()`/`vaultCard()` succeeds |
+| `vaultFailed`           | Vault returns failure              |
+| `subscriptionCreated`   | `createSubscription()` succeeds    |
+| `subscriptionCancelled` | `cancelSubscription()` succeeds    |
+| `subscriptionSuspended` | `suspendSubscription()` succeeds   |
+| `subscriptionActivated` | `activateSubscription()` succeeds  |
+
+---
+
+### Multiple Funding Sources
+
+Pass a `fundingSource` to any checkout to restrict the payment instrument:
+
+```dart
+await paypal.pay(
+  PaymentRequest(
+    orderId: 'ORDER_ID',
+    fundingSource: PaypalFundingSource.venmo,   // or .credit, .debit, .payLater
+  ),
+);
+```
+
+Available values: `PaypalFundingSource.paypal`, `.payLater`, `.venmo`, `.credit`, `.debit`.
+
+---
+
+### Pay Later Offer
+
+Fetch promotional financing offers for a buyer before checkout:
+
+```dart
+final result = await paypal.getPayLaterOffer(
+  clientSecret: 'YOUR_SECRET',
+  amount: '150.00',
+  currencyCode: 'USD',
+  buyerCountryCode: 'US', // optional
+);
+
+result.fold(
+  (failure) => print('No offer: ${failure.message}'),
+  (offer)   => print('Monthly payment: ${offer['monthly_payment']}'),
+);
+```
+
+---
+
+### UI Components
+
+#### PaypalCheckoutButton
+
+Drop-in branded button with animated press, loading state, and dark mode support:
+
+```dart
+PaypalCheckoutButton(
+  fundingSource: PaypalFundingSource.paypal,
+  isLoading: _processing,
+  onPressed: () async {
+    setState(() => _processing = true);
+    await paypal.pay(PaymentRequest(orderId: orderId));
+    setState(() => _processing = false);
+  },
+)
+```
+
+#### PaypalPayLaterBanner
+
+Inline promotional banner that auto-calculates 4-instalment amounts:
+
+```dart
+PaypalPayLaterBanner(
+  amount: 120.00,
+  currencyCode: 'USD',
+  onLearnMoreTap: () => launchUrl(Uri.parse('https://www.paypal.com/paylater')),
+)
+```
+
+#### PaypalVaultButton
+
+Branded "Save payment method" button for vault flows:
+
+```dart
+PaypalVaultButton(
+  isLoading: _saving,
+  label: 'Save card for later',
+  onPressed: () async {
+    await paypal.vaultCard(VaultCardRequest(...));
+  },
+)
+```
+
+---
+
+### Structured Logging
+
+All internal plugin operations emit structured logs. Configure globally:
+
+```dart
+// Suppress debug logs in production
+PaypalLogger.minLevel = PaypalLogLevel.warning;
+
+// Forward logs to your analytics / Crashlytics
+PaypalLogger.customHandler = (level, tag, message, [error, stackTrace]) {
+  FirebaseCrashlytics.instance.log('[$level] $tag: $message');
+  return true; // return true to suppress the default print()
+};
+```
+
+**Log levels**: `debug`, `info`, `warning`, `error`, `none`.
+
+---
+
+### Webhook Framework
+
+#### Parse an incoming webhook
+
+```dart
+final event = PaypalWebhookHelper.parse(requestBody);
+print('${event.eventTypeName} — ${event.resource['id']}');
+
+// Or safe variant that returns null on error
+final event = PaypalWebhookHelper.tryParse(requestBody);
+```
+
+#### Local signature verification (HMAC-SHA256)
+
+```dart
+final valid = PaypalWebhookHelper.verifySignatureLocal(
+  webhookId: 'WH-ID-FROM-DASHBOARD',
+  transmissionId: request.headers['paypal-transmission-id']!,
+  transmissionTime: request.headers['paypal-transmission-time']!,
+  certUrl: request.headers['paypal-cert-url']!,
+  authAlgo: request.headers['paypal-auth-algo']!,
+  actualSignature: request.headers['paypal-transmission-sig']!,
+  webhookSecret: 'YOUR_WEBHOOK_SECRET',
+  body: requestBody,
+);
+```
+
+#### Server-side verification via PayPal API
+
+```dart
+final valid = await PaypalWebhookHelper.verifyViaApi(
+  clientId: 'YOUR_CLIENT_ID',
+  clientSecret: 'YOUR_SECRET',
+  environment: PaypalEnvironment.sandbox,
+  webhookId: 'WH-ID-FROM-DASHBOARD',
+  headers: {
+    'paypal-transmission-id': request.headers['paypal-transmission-id']!,
+    'paypal-transmission-time': request.headers['paypal-transmission-time']!,
+    'paypal-cert-url': request.headers['paypal-cert-url']!,
+    'paypal-auth-algo': request.headers['paypal-auth-algo']!,
+    'paypal-transmission-sig': request.headers['paypal-transmission-sig']!,
+  },
+  body: requestBody,
+);
+```
+
+**Supported event types** (28 total): `CHECKOUT.ORDER.*`, `PAYMENT.CAPTURE.*`, `PAYMENT.AUTHORIZATION.*`, `PAYMENT.SALE.*`, `BILLING.SUBSCRIPTION.*`, `PAYMENT.SALE.*`, `VAULT.*`, and more.
+
+---
+
+### Subscription Analytics
+
+Compute SaaS metrics from a list of subscription maps returned by `listSubscriptions()`:
+
+```dart
+final subs = await paypal.listSubscriptions(
+  clientSecret: secret,
+  statuses: 'ACTIVE,CANCELLED',
+  pageSize: 100,
+);
+
+subs.fold((err) => null, (data) {
+  final subscriptions = data['subscriptions'] as List<Map<String, dynamic>>;
+
+  final report = PaypalSubscriptionAnalytics.revenueReport(subscriptions);
+
+  print('MRR: \$${report.mrr.toStringAsFixed(2)}');
+  print('ARR: \$${report.arr.toStringAsFixed(2)}');
+  print('ARPU: \$${report.arpu.toStringAsFixed(2)}');
+  print('Churn rate: ${(report.churnRate * 100).toStringAsFixed(1)}%');
+  print('Active: ${report.activeSubscriptions}');
+});
+```
+
+**All metrics normalize billing intervals** (daily, weekly, monthly, annual) to a per-month MRR.
+
+---
+
+### Swift Package Manager (iOS)
+
+A `Package.swift` manifest is now included at the package root. Flutter 3.24+ will auto-detect it. To opt in manually, add to your `ios/Podfile`:
+
+```ruby
+# Keep CocoaPods as primary (default)
+# SPM will be used automatically by Flutter 3.24+
+```
+
+No changes required — existing CocoaPods integrations continue to work.
+
+---
 
 ## Support
 

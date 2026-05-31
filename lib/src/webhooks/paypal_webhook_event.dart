@@ -104,13 +104,14 @@ class PaypalWebhookEvent {
       eventType: _parseEventType(eventTypeName),
       eventTypeName: eventTypeName,
       resourceType: _parseResourceType(resourceTypeName),
-      resource: (json['resource'] as Map<String, dynamic>?) ?? {},
+      resource: Map<String, dynamic>.from(json['resource'] as Map? ?? {}),
       summary: json['summary'] as String? ?? '',
       createTime: DateTime.tryParse(json['create_time'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       webhookId: json['webhook_id'] as String?,
       transmissions: (json['transmissions'] as List<dynamic>?)
-          ?.whereType<Map<String, dynamic>>()
+          ?.whereType<Map<dynamic, dynamic>>()
+          .map((e) => Map<String, dynamic>.from(e))
           .toList(),
     );
   }
