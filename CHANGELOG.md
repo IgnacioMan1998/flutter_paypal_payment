@@ -1,3 +1,20 @@
+## 0.3.0
+
+- **New**: Federated plugin architecture — `PaypalPlatform` abstract interface (`plugin_platform_interface`) for custom platform implementations
+- **New**: Web platform support — `PaypalWebCheckout` (REST redirect flow) and `PaypalJsSdkLoader` (lazy JS SDK loading for Flutter Web)
+- **New**: Funding Eligibility API — `PaypalFundingEligibility.check()` / `FlutterPaypalPayment.checkFundingEligibility()` with TTL caching and `PaypalFundingSource` enum
+- **New**: Pay Later Offer Service — `PayLaterOfferService.getOffer()` returns structured `PayLaterOffer` with `summary`, `formattedMonthly`, `disclosure`
+- **New**: Marketplace / Commerce Platform — `PaypalMarketplaceService` for partner referrals (`createPartnerReferral`), seller onboarding status (`getSellerStatus`), marketplace orders (`createMarketplaceOrder`, `captureForMerchant`)
+- **New**: `PaypalSubscriptionWidget` — drop-in widget with status badge and cancel/suspend/activate action buttons
+- **New**: `PaypalDebugOverlay` + `PaypalDebugController` — floating debug panel (auto-hidden in release builds) for recording SDK events and errors
+- **New**: `PaypalLogLevel.trace` — ultra-verbose log level below `debug` for raw HTTP tracing
+- **New**: Four new event bus streams — `cardPaymentStarted`, `vaultStarted`, `refundCompleted`, `refundFailed`
+- **New**: Plugin now emits `cardPaymentStarted` / `vaultStarted` events before native calls, and `refundCompleted` / `refundFailed` after `refund()`
+- **New**: Revenue segmentation analytics — `PaypalSubscriptionAnalytics.revenueByPlan()`, `revenueByMonth()`, `revenueTrend()` with `MonthlyRevenueTrend` model
+- **Fix**: `PaypalWebhookResourceType` enum values renamed to lowerCamelCase (`checkoutOrder`, `billingAgreement`)
+- **Docs**: Full v0.3.0 README section with migration guide from v0.2.x
+- **Tests**: 319 tests passing (up from 256)
+
 ## 0.1.0
 
 - **New**: `PaypalCardFormTheme` — fully customizable theme class for `PaypalCardForm` with 4 built-in presets: `PaypalCardFormTheme.paypal` (default), `.dark`, `.aurora`, `.gold`
