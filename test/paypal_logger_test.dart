@@ -54,7 +54,7 @@ void main() {
 
     test('customHandler returning true suppresses default print', () {
       // No exception means it suppressed cleanly
-      PaypalLogger.customHandler = (_, __, ___, [____, _____]) => true;
+      PaypalLogger.customHandler = (_, _, _, [_, _]) => true;
       expect(
         () => PaypalLogger.info('quiet', tag: 'T'),
         returnsNormally,

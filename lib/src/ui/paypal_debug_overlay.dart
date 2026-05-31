@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../events/paypal_events.dart';
-import '../logger/paypal_logger.dart';
 
 // ═══════════════════════════════════════════════════════════
 // Debug event record
@@ -432,7 +431,7 @@ class _EventList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       itemCount: events.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           const Divider(height: 1, color: Color(0xFF222244)),
       itemBuilder: (context, i) => _EventTile(event: events[i]),
     );

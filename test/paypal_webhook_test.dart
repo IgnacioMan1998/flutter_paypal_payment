@@ -9,7 +9,7 @@ void main() {
   // ═══════════════════════════════════════════════════════
 
   group('PaypalWebhookEvent.fromJson', () {
-    Map<String, dynamic> _payloadFor(
+    Map<String, dynamic> payloadFor(
         String eventType, String resourceType, Map<String, dynamic> resource) {
       return {
         'id': 'WH-TEST-001',
@@ -23,7 +23,7 @@ void main() {
     }
 
     test('parses PAYMENT.CAPTURE.COMPLETED correctly', () {
-      final json = _payloadFor(
+      final json = payloadFor(
         'PAYMENT.CAPTURE.COMPLETED',
         'capture',
         {'id': 'CAPTURE-123', 'status': 'COMPLETED'},
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('parses CHECKOUT.ORDER.APPROVED correctly', () {
-      final json = _payloadFor(
+      final json = payloadFor(
         'CHECKOUT.ORDER.APPROVED',
         'checkout_order',
         {'id': 'ORDER-456'},
@@ -52,7 +52,7 @@ void main() {
     });
 
     test('parses BILLING.SUBSCRIPTION.ACTIVATED correctly', () {
-      final json = _payloadFor(
+      final json = payloadFor(
         'BILLING.SUBSCRIPTION.ACTIVATED',
         'subscription',
         {'id': 'I-12345'},
@@ -65,14 +65,14 @@ void main() {
     });
 
     test('unknown event type maps to PaypalWebhookEventType.unknown', () {
-      final json = _payloadFor('SOME.FUTURE.EVENT', 'payment', {});
+      final json = payloadFor('SOME.FUTURE.EVENT', 'payment', {});
       final event = PaypalWebhookEvent.fromJson(json);
 
       expect(event.eventType, PaypalWebhookEventType.unknown);
     });
 
     test('unknown resource type maps to PaypalWebhookResourceType.unknown', () {
-      final json = _payloadFor('PAYMENT.CAPTURE.COMPLETED', 'new_type', {});
+      final json = payloadFor('PAYMENT.CAPTURE.COMPLETED', 'new_type', {});
       final event = PaypalWebhookEvent.fromJson(json);
 
       expect(event.resourceType, PaypalWebhookResourceType.unknown);
@@ -93,7 +93,7 @@ void main() {
     });
 
     test('toJson round-trips the event', () {
-      final json = _payloadFor(
+      final json = payloadFor(
         'PAYMENT.CAPTURE.COMPLETED',
         'capture',
         {'id': 'CAPTURE-999'},

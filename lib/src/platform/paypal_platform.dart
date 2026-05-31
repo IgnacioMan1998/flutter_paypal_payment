@@ -2,13 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../../paypal_checkout_flutter.dart';
-import '../domain/entities/card_payment.dart';
-import '../domain/entities/payment_card.dart';
-import '../domain/entities/payment_params.dart';
-import '../domain/entities/payment_request.dart';
-import '../domain/entities/payment_result.dart';
-import '../domain/entities/paypal_config.dart';
-import '../domain/entities/vault.dart';
 
 /// Abstract platform interface for PayPal checkout operations.
 ///

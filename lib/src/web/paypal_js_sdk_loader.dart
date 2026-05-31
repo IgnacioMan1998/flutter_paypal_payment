@@ -214,7 +214,7 @@ class _PendingLoad {
 
   static (Future<void>, void Function()) _makeFuture() {
     late void Function() resolve;
-    final f = Future<void>(() {}).then((_) {
+    Future<void>(() {}).then((_) {
       return Future<void>(() {});
     });
     // Simple one-shot completer

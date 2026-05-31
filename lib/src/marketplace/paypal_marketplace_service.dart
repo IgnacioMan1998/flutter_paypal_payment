@@ -34,10 +34,14 @@ class PaypalPartnerReferral {
 
   factory PaypalPartnerReferral.fromJson(Map<String, dynamic> json) {
     final links = (json['links'] as List<dynamic>?) ?? [];
-    final actionLink = links.firstWhere(
-      (l) => (l as Map<String, dynamic>)['rel'] == 'action_url',
-      orElse: () => <String, dynamic>{'href': ''},
-    ) as Map<String, dynamic>;
+    Map<String, dynamic> actionLink = {'href': ''};
+    for (final l in links) {
+      final link = l as Map<String, dynamic>;
+      if (link['rel'] == 'action_url') {
+        actionLink = link;
+        break;
+      }
+    }
 
     return PaypalPartnerReferral(
       partnerId: json['partner_client_id'] as String? ?? '',
@@ -226,7 +230,7 @@ class PaypalMarketplaceService {
       final body = jsonEncode({
         'tracking_id': trackingId,
         'partner_config_override': {
-          if (returnUrl != null) 'return_url': returnUrl,
+          'return_url': ?returnUrl,
           'return_url_description': 'Return to app after PayPal onboarding',
         },
         'operations': [
@@ -348,9 +352,8 @@ class PaypalMarketplaceService {
         'payee': {
           'merchant_id': sellerMerchantId,
         },
-        if (description != null) 'description': description,
-        if (paymentInstruction != null)
-          'payment_instruction': paymentInstruction,
+        'description': ?description,
+        'payment_instruction': ?paymentInstruction,
       };
 
       final orderBody = {
@@ -358,8 +361,8 @@ class PaypalMarketplaceService {
         'purchase_units': [purchaseUnit],
         if (returnUrl != null || cancelUrl != null)
           'application_context': {
-            if (returnUrl != null) 'return_url': returnUrl,
-            if (cancelUrl != null) 'cancel_url': cancelUrl,
+            'return_url': ?returnUrl,
+            'cancel_url': ?cancelUrl,
           },
       };
 

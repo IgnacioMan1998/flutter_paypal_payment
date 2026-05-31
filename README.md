@@ -924,6 +924,313 @@ No changes required — existing CocoaPods integrations continue to work.
 
 ---
 
+## v0.3.0 — Enterprise Features
+
+### Federated Plugin Architecture
+
+`PaypalPlatform` provides an abstract interface for federated plugin implementations. Third-party packages can implement `PaypalPlatform` to add new platform targets (e.g., macOS, Windows) without forking the plugin.
+
+```dart
+// Custom platform implementation
+class MyPaypalPlatform extends PaypalPlatform {
+  @override
+  Future<Either<PaymentFailure, Unit>> initialize(PaypalConfig config) async { ... }
+  // ...
+}
+
+// Register before first use
+PaypalPlatform.instance = MyPaypalPlatform();
+```
+
+---
+
+### Web Platform Support
+
+Use `PaypalWebCheckout` for REST-based checkout on Flutter Web (redirect flow — no native SDK required):
+
+```dart
+final checkout = PaypalWebCheckout(
+  config: config,
+  clientSecret: 'YOUR_CLIENT_SECRET',
+);
+
+final result = await checkout.createOrder(
+  amount: '50.00',
+  currencyCode: 'USD',
+  returnUrl: 'https://yourapp.com/success',
+  cancelUrl: 'https://yourapp.com/cancel',
+);
+
+result.fold(
+  (f) => print('Error: ${f.message}'),
+  (data) {
+    final approveUrl = data['approveUrl']!;
+    // Redirect buyer to approveUrl, then capture:
+    final captured = await checkout.captureOrder(orderId: data['orderId']!);
+  },
+);
+```
+
+#### JS SDK Loader
+
+Load the PayPal JavaScript SDK lazily (idempotent, singleton):
+
+```dart
+await PaypalJsSdkLoader.ensureLoaded(
+  clientId: 'YOUR_CLIENT_ID',
+  environment: PaypalEnvironment.sandbox,
+  currency: 'USD',
+  fundingSources: ['paypal', 'paylater'],
+);
+
+// Check status
+if (PaypalJsSdkLoader.isLoaded) {
+  print('SDK version: ${PaypalJsSdkLoader.sdkVersion}');
+}
+```
+
+---
+
+### Funding Eligibility
+
+Check which PayPal funding sources are available for a given buyer — with TTL caching:
+
+```dart
+final result = await paypal.checkFundingEligibility(
+  clientSecret: 'YOUR_CLIENT_SECRET',
+  currencyCode: 'USD',
+  buyerCountryCode: 'US',
+);
+
+result.fold(
+  (f) => print('Error: ${f.message}'),
+  (eligibility) {
+    if (eligibility.payLaterEligible) showPayLaterBadge();
+    if (eligibility.venmoEligible) showVenmoOption();
+
+    // List all eligible sources
+    for (final source in eligibility.eligibleSources) {
+      print('Eligible: $source');
+    }
+  },
+);
+
+// Or use the static API directly
+await PaypalFundingEligibility.check(
+  clientId: 'YOUR_CLIENT_ID',
+  clientSecret: 'YOUR_SECRET',
+  environment: PaypalEnvironment.sandbox,
+  currencyCode: 'USD',
+);
+
+// Cache is valid for 5 minutes by default
+PaypalFundingEligibility.cacheDuration = const Duration(minutes: 10);
+PaypalFundingEligibility.clearCache();
+```
+
+---
+
+### Pay Later Offer Service
+
+Fetch structured Pay Later financing offers for a given amount:
+
+```dart
+final result = await PayLaterOfferService.getOffer(
+  clientId: 'CLIENT_ID',
+  clientSecret: 'SECRET',
+  environment: PaypalEnvironment.sandbox,
+  amount: '500.00',
+  currencyCode: 'USD',
+  buyerCountryCode: 'US',
+);
+
+result.fold(
+  (f) => print(f.message),
+  (offer) {
+    print(offer.summary);           // "4 payments of $125.00"
+    print(offer.formattedMonthly);  // "$125.00"
+    print(offer.installments);      // 4
+    print(offer.disclosure);        // Legal text
+  },
+);
+```
+
+---
+
+### Marketplace / Commerce Platform
+
+Multi-seller checkout via PayPal Commerce Platform:
+
+```dart
+final service = PaypalMarketplaceService(
+  config: config,
+  clientSecret: 'SECRET',
+  partnerMerchantId: 'PARTNER_PAYER_ID',
+);
+
+// 1. Onboard a seller
+final referral = await service.createPartnerReferral(
+  merchantEmail: 'seller@example.com',
+  trackingId: 'seller_unique_id',
+  returnUrl: 'https://yourapp.com/onboarding/complete',
+);
+referral.fold(
+  (f) => print(f.message),
+  (r) => redirect(r.actionUrl),  // Send seller to PayPal onboarding
+);
+
+// 2. Check onboarding status
+final status = await service.getSellerStatus(merchantId: 'MERCHANT_PAYER_ID');
+status.fold(
+  (f) => print(f.message),
+  (s) => print('Fully onboarded: ${s.isFullyOnboarded}'),
+);
+
+// 3. Create a marketplace order with platform fee
+final order = await service.createMarketplaceOrder(
+  amount: '100.00',
+  currencyCode: 'USD',
+  sellerMerchantId: 'SELLER_PAYER_ID',
+  platformFee: '5.00',
+  returnUrl: 'https://yourapp.com/success',
+  cancelUrl: 'https://yourapp.com/cancel',
+);
+
+// 4. Capture for the seller
+await service.captureForMerchant(
+  orderId: 'ORDER_ID',
+  sellerMerchantId: 'SELLER_PAYER_ID',
+);
+
+service.dispose();
+```
+
+---
+
+### Subscription Widget
+
+Display subscription details with status badge and action buttons:
+
+```dart
+PaypalSubscriptionWidget(
+  subscriptionData: subscriptionJson,  // raw map from getSubscriptionDetails()
+  onCancel: () => _cancelSubscription(),
+  onSuspend: () => _suspendSubscription(),
+  onActivate: () => _activateSubscription(),
+  showActions: true,
+  backgroundColor: Colors.white,
+  borderRadius: 12,
+)
+```
+
+Status badge colors: ACTIVE (green), SUSPENDED (amber), CANCELLED (red), EXPIRED (grey), APPROVAL_PENDING (blue).
+
+---
+
+### Debug Overlay
+
+A floating debug panel — **automatically hidden in release builds**:
+
+```dart
+// 1. Create controller
+final debugController = PaypalDebugController();
+
+// 2. Wire up event streams
+paypal.events.checkoutStarted.listen(debugController.recordCheckoutEvent);
+paypal.events.checkoutCompleted.listen(debugController.recordCheckoutEvent);
+paypal.events.checkoutFailed.listen(debugController.recordCheckoutEvent);
+
+// 3. Wrap your UI
+PaypalDebugOverlay(
+  controller: debugController,
+  child: MyApp(),
+)
+
+// 4. Record SDK initialization
+debugController.recordInit(env: 'sandbox');
+
+// 5. Record custom events
+debugController.recordEvent(
+  type: 'CAPTURE_STARTED',
+  summary: 'Capturing order',
+  detail: 'orderId: ORDER-123',
+);
+```
+
+---
+
+### Trace Log Level
+
+Ultra-verbose `trace` level for debugging raw HTTP traffic — never enable in production:
+
+```dart
+PaypalLogger.minLevel = PaypalLogLevel.trace;
+```
+
+**Log levels** (most to least verbose): `trace`, `debug`, `info`, `warning`, `error`, `none`.
+
+---
+
+### Enhanced Event Bus
+
+Four new event streams in v0.3.0:
+
+| Stream              | Emits when…                               |
+| ------------------- | ----------------------------------------- |
+| `cardPaymentStarted` | Card payment submitted to SDK            |
+| `vaultStarted`      | Vault operation begins                   |
+| `refundCompleted`   | `refund()` succeeds                      |
+| `refundFailed`      | `refund()` returns failure               |
+
+```dart
+paypal.events.refundCompleted.listen((e) {
+  print('Refunded ${e.refundId} for capture ${e.captureId}');
+});
+paypal.events.cardPaymentStarted.listen((e) {
+  print('Card payment started for order ${e.orderId}');
+});
+```
+
+---
+
+### Revenue Segmentation Analytics
+
+Two new analytics methods and a growth trend utility:
+
+```dart
+final subs = [...]; // from listSubscriptions()
+
+// MRR grouped by plan ID (sorted descending)
+final byPlan = PaypalSubscriptionAnalytics.revenueByPlan(subs);
+byPlan.forEach((planId, mrr) => print('$planId: \$$mrr'));
+
+// MRR grouped by calendar month (YYYY-MM, sorted ascending)
+final byMonth = PaypalSubscriptionAnalytics.revenueByMonth(subs);
+byMonth.forEach((month, mrr) => print('$month: \$$mrr'));
+
+// Month-over-month growth trend
+final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
+for (final t in trend) {
+  print('${t.month}: \$${t.mrr.toStringAsFixed(2)} '
+        '(${t.growthPercent?.toStringAsFixed(1) ?? 'N/A'}% MoM)');
+  print(t.isGrowth ? '↑' : t.isDecline ? '↓' : '—');
+}
+```
+
+---
+
+### Migration Guide: v0.2.x → v0.3.x
+
+**pubspec.yaml**: Bump version to `^0.3.0`.
+
+**Logger**: `PaypalLogLevel.trace` is now the lowest level (index 0). Existing `minLevel` comparisons still work — no code changes needed unless you compare enum `.index` values directly.
+
+**Event bus**: All new streams (`cardPaymentStarted`, `vaultStarted`, `refundCompleted`, `refundFailed`) are broadcast streams — subscribe normally. Existing streams are unchanged.
+
+**Exports**: All new types (`FundingEligibilityResult`, `PayLaterOffer`, `PaypalMarketplaceService`, `PaypalWebCheckout`, `PaypalSubscriptionWidget`, `PaypalDebugOverlay`, `PaypalPlatform`, etc.) are now exported from `paypal_checkout_flutter.dart` — no additional imports needed.
+
+---
+
 ## Support
 
 If this package helps you, consider supporting its development:

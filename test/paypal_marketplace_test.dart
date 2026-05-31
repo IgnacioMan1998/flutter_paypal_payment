@@ -9,16 +9,7 @@ void main() {
         'payments_receivable': true,
         'primary_email_confirmed': true,
         'oauth_integrations': [
-          {
-            'integration_type': 'OAUTH_THIRD_PARTY',
-            'oauth_third_party': [
-              {
-                'partner_client_id': 'CLIENT_ID',
-                'merchant_client_id': 'MERCHANT_CLIENT',
-                'scopes': ['https://uri.paypal.com/services/payments/initiatepayment'],
-              }
-            ],
-          }
+          {'integration_type': 'OAUTH_THIRD_PARTY'},
         ],
       };
 
@@ -26,6 +17,7 @@ void main() {
       expect(status.merchantId, 'MERCHANT123');
       expect(status.paymentsReceivable, isTrue);
       expect(status.primaryEmailConfirmed, isTrue);
+      expect(status.oauthIntegrated, isTrue);
     });
 
     test('isFullyOnboarded true when all conditions met', () {
@@ -34,21 +26,17 @@ void main() {
         paymentsReceivable: true,
         primaryEmailConfirmed: true,
         oauthIntegrated: true,
-        consentStatus: true,
       );
-
       expect(status.isFullyOnboarded, isTrue);
     });
 
-    test('isFullyOnboarded false if any field false', () {
+    test('isFullyOnboarded false if primaryEmailConfirmed is false', () {
       const status = PaypalSellerStatus(
         merchantId: 'M123',
         paymentsReceivable: true,
-        primaryEmailConfirmed: false, // not confirmed
+        primaryEmailConfirmed: false,
         oauthIntegrated: true,
-        consentStatus: true,
       );
-
       expect(status.isFullyOnboarded, isFalse);
     });
 
@@ -58,9 +46,7 @@ void main() {
         paymentsReceivable: true,
         primaryEmailConfirmed: true,
         oauthIntegrated: false,
-        consentStatus: true,
       );
-
       expect(status.isFullyOnboarded, isFalse);
     });
 
@@ -70,31 +56,51 @@ void main() {
         paymentsReceivable: false,
         primaryEmailConfirmed: true,
         oauthIntegrated: true,
-        consentStatus: true,
       );
-
       expect(status.isFullyOnboarded, isFalse);
+    });
+
+    test('fromJson handles empty oauth_integrations', () {
+      final json = {
+        'merchant_id': 'M456',
+        'payments_receivable': true,
+        'primary_email_confirmed': true,
+        'oauth_integrations': <dynamic>[],
+      };
+      final status = PaypalSellerStatus.fromJson(json);
+      expect(status.oauthIntegrated, isFalse);
+    });
+
+    test('fromJson handles missing oauth_integrations', () {
+      final json = {
+        'merchant_id': 'M789',
+        'payments_receivable': false,
+        'primary_email_confirmed': false,
+      };
+      final status = PaypalSellerStatus.fromJson(json);
+      expect(status.oauthIntegrated, isFalse);
     });
   });
 
   group('PaypalPartnerReferral', () {
-    test('fromJson parses fields', () {
+    test('fromJson parses actionUrl from links', () {
       final json = {
-        'partner_referral_id': 'REFERRAL123',
+        'partner_client_id': 'PARTNER123',
+        'referral_id': 'REF456',
         'links': [
           {'rel': 'action_url', 'href': 'https://paypal.com/onboard?token=abc'},
         ],
       };
 
       final referral = PaypalPartnerReferral.fromJson(json);
-      expect(referral.referralId, 'REFERRAL123');
+      expect(referral.partnerId, 'PARTNER123');
+      expect(referral.referralId, 'REF456');
       expect(referral.actionUrl, 'https://paypal.com/onboard?token=abc');
     });
 
-    test('fromJson handles missing links gracefully', () {
-      final json = {'partner_referral_id': 'REF456', 'links': <dynamic>[]};
+    test('fromJson handles missing action_url link gracefully', () {
+      final json = {'partner_client_id': 'P1', 'links': <dynamic>[]};
       final referral = PaypalPartnerReferral.fromJson(json);
-      expect(referral.referralId, 'REF456');
       expect(referral.actionUrl, isEmpty);
     });
   });

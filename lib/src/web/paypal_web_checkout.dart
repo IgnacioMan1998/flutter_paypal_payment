@@ -121,7 +121,7 @@ class PaypalWebCheckout {
               'currency_code': currencyCode,
               'value': amount,
             },
-            if (description != null) 'description': description,
+            'description': ?description,
           }
         ],
         'application_context': {

@@ -9,7 +9,7 @@ void main() {
   group('PaypalSubscriptionAnalytics', () {
     // ── Helpers ──────────────────────────────────────────
 
-    Map<String, dynamic> _sub({
+    Map<String, dynamic> sub0({
       required String status,
       required double lastPaymentValue,
       String currency = 'USD',
@@ -47,17 +47,17 @@ void main() {
 
       test('sums only ACTIVE subscriptions', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 10.00),
-          _sub(status: 'ACTIVE', lastPaymentValue: 20.00),
-          _sub(status: 'CANCELLED', lastPaymentValue: 30.00),
-          _sub(status: 'SUSPENDED', lastPaymentValue: 40.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 20.00),
+          sub0(status: 'CANCELLED', lastPaymentValue: 30.00),
+          sub0(status: 'SUSPENDED', lastPaymentValue: 40.00),
         ];
         expect(PaypalSubscriptionAnalytics.getMRR(subs), closeTo(30.0, 0.001));
       });
 
       test('normalises annual plans to monthly', () {
         final subs = [
-          _sub(
+          sub0(
             status: 'ACTIVE',
             lastPaymentValue: 120.00,
             intervalUnit: 'YEAR',
@@ -69,7 +69,7 @@ void main() {
 
       test('normalises biannual plans', () {
         final subs = [
-          _sub(
+          sub0(
             status: 'ACTIVE',
             lastPaymentValue: 240.00,
             intervalUnit: 'YEAR',
@@ -82,7 +82,7 @@ void main() {
       test('normalises weekly plans', () {
         // Weekly plan billing $40/week ≈ $40 / 4.345 per month
         final subs = [
-          _sub(
+          sub0(
             status: 'ACTIVE',
             lastPaymentValue: 40.00,
             intervalUnit: 'WEEK',
@@ -97,7 +97,7 @@ void main() {
       test('normalises daily plans', () {
         // 30-day plan charging $30 every 30 days ≈ $1/month
         final subs = [
-          _sub(
+          sub0(
             status: 'ACTIVE',
             lastPaymentValue: 30.00,
             intervalUnit: 'DAY',
@@ -111,7 +111,7 @@ void main() {
 
       test('bi-monthly plan is halved', () {
         final subs = [
-          _sub(
+          sub0(
             status: 'ACTIVE',
             lastPaymentValue: 20.00,
             intervalUnit: 'MONTH',
@@ -127,7 +127,7 @@ void main() {
     group('getARR()', () {
       test('equals getMRR × 12', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 10.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10.00),
         ];
         final mrr = PaypalSubscriptionAnalytics.getMRR(subs);
         expect(
@@ -142,16 +142,16 @@ void main() {
     group('getARPU()', () {
       test('returns 0 when no active subscriptions', () {
         final subs = [
-          _sub(status: 'CANCELLED', lastPaymentValue: 10.00),
+          sub0(status: 'CANCELLED', lastPaymentValue: 10.00),
         ];
         expect(PaypalSubscriptionAnalytics.getARPU(subs), 0.0);
       });
 
       test('divides MRR by active count', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 30.00),
-          _sub(status: 'ACTIVE', lastPaymentValue: 30.00),
-          _sub(status: 'CANCELLED', lastPaymentValue: 100.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 30.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 30.00),
+          sub0(status: 'CANCELLED', lastPaymentValue: 100.00),
         ];
         // MRR = 60, active = 2 → ARPU = 30
         expect(
@@ -170,10 +170,10 @@ void main() {
 
       test('calculates correctly from subscription list', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 10),
-          _sub(status: 'ACTIVE', lastPaymentValue: 10),
-          _sub(status: 'CANCELLED', lastPaymentValue: 10),
-          _sub(status: 'CANCELLED', lastPaymentValue: 10),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10),
+          sub0(status: 'CANCELLED', lastPaymentValue: 10),
+          sub0(status: 'CANCELLED', lastPaymentValue: 10),
         ];
         expect(
           PaypalSubscriptionAnalytics.getChurnRate(subs),
@@ -194,8 +194,8 @@ void main() {
 
       test('returns 0 when all are active', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 10),
-          _sub(status: 'ACTIVE', lastPaymentValue: 10),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10),
         ];
         expect(PaypalSubscriptionAnalytics.getChurnRate(subs), 0.0);
       });
@@ -206,10 +206,10 @@ void main() {
     group('countByStatus()', () {
       test('counts each status correctly', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 1),
-          _sub(status: 'ACTIVE', lastPaymentValue: 1),
-          _sub(status: 'CANCELLED', lastPaymentValue: 1),
-          _sub(status: 'SUSPENDED', lastPaymentValue: 1),
+          sub0(status: 'ACTIVE', lastPaymentValue: 1),
+          sub0(status: 'ACTIVE', lastPaymentValue: 1),
+          sub0(status: 'CANCELLED', lastPaymentValue: 1),
+          sub0(status: 'SUSPENDED', lastPaymentValue: 1),
         ];
         final counts = PaypalSubscriptionAnalytics.countByStatus(subs);
         expect(counts['ACTIVE'], 2);
@@ -227,9 +227,9 @@ void main() {
     group('revenueReport()', () {
       test('produces correct SubscriptionRevenueReport', () {
         final subs = [
-          _sub(status: 'ACTIVE', lastPaymentValue: 10.00),
-          _sub(status: 'ACTIVE', lastPaymentValue: 10.00),
-          _sub(status: 'CANCELLED', lastPaymentValue: 5.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10.00),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10.00),
+          sub0(status: 'CANCELLED', lastPaymentValue: 5.00),
         ];
 
         final report = PaypalSubscriptionAnalytics.revenueReport(subs);
@@ -247,7 +247,7 @@ void main() {
 
       test('toString() includes key metrics', () {
         final report = PaypalSubscriptionAnalytics.revenueReport([
-          _sub(status: 'ACTIVE', lastPaymentValue: 10),
+          sub0(status: 'ACTIVE', lastPaymentValue: 10),
         ]);
         final str = report.toString();
         expect(str, contains('mrr'));
@@ -259,7 +259,7 @@ void main() {
     // ── revenueByPlan ─────────────────────────────────────
 
     group('revenueByPlan()', () {
-      Map<String, dynamic> _subWithPlan({
+      Map<String, dynamic> subWithPlan({
         required String status,
         required double lastPaymentValue,
         required String planId,
@@ -292,10 +292,10 @@ void main() {
 
       test('groups MRR by plan ID for active subs', () {
         final subs = [
-          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 10, planId: 'P-A'),
-          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 20, planId: 'P-A'),
-          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 15, planId: 'P-B'),
-          _subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
+          subWithPlan(status: 'ACTIVE', lastPaymentValue: 10, planId: 'P-A'),
+          subWithPlan(status: 'ACTIVE', lastPaymentValue: 20, planId: 'P-A'),
+          subWithPlan(status: 'ACTIVE', lastPaymentValue: 15, planId: 'P-B'),
+          subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
         ];
 
         final result = PaypalSubscriptionAnalytics.revenueByPlan(subs);
@@ -306,7 +306,7 @@ void main() {
 
       test('returns empty map for no active subs', () {
         final subs = [
-          _subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
+          subWithPlan(status: 'CANCELLED', lastPaymentValue: 10, planId: 'P-A'),
         ];
 
         expect(PaypalSubscriptionAnalytics.revenueByPlan(subs), isEmpty);
@@ -314,8 +314,8 @@ void main() {
 
       test('sorted by MRR descending', () {
         final subs = [
-          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 5, planId: 'P-LOW'),
-          _subWithPlan(status: 'ACTIVE', lastPaymentValue: 100, planId: 'P-HIGH'),
+          subWithPlan(status: 'ACTIVE', lastPaymentValue: 5, planId: 'P-LOW'),
+          subWithPlan(status: 'ACTIVE', lastPaymentValue: 100, planId: 'P-HIGH'),
         ];
 
         final result = PaypalSubscriptionAnalytics.revenueByPlan(subs);
@@ -348,7 +348,7 @@ void main() {
     // ── revenueByMonth ────────────────────────────────────
 
     group('revenueByMonth()', () {
-      Map<String, dynamic> _subWithTime({
+      Map<String, dynamic> subWithTime({
         required String status,
         required double lastPaymentValue,
         required String lastPaymentTime,
@@ -380,9 +380,9 @@ void main() {
 
       test('groups MRR by YYYY-MM for active subs', () {
         final subs = [
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 20, lastPaymentTime: '2025-01-20T10:00:00Z'),
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 15, lastPaymentTime: '2025-02-05T10:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 20, lastPaymentTime: '2025-01-20T10:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 15, lastPaymentTime: '2025-02-05T10:00:00Z'),
         ];
 
         final result = PaypalSubscriptionAnalytics.revenueByMonth(subs);
@@ -392,7 +392,7 @@ void main() {
 
       test('ignores cancelled subs', () {
         final subs = [
-          _subWithTime(status: 'CANCELLED', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
+          subWithTime(status: 'CANCELLED', lastPaymentValue: 10, lastPaymentTime: '2025-01-15T10:00:00Z'),
         ];
 
         expect(PaypalSubscriptionAnalytics.revenueByMonth(subs), isEmpty);
@@ -420,9 +420,9 @@ void main() {
 
       test('returns months sorted ascending', () {
         final subs = [
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-03-01T00:00:00Z'),
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-01T00:00:00Z'),
-          _subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-02-01T00:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-03-01T00:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-01-01T00:00:00Z'),
+          subWithTime(status: 'ACTIVE', lastPaymentValue: 10, lastPaymentTime: '2025-02-01T00:00:00Z'),
         ];
 
         final keys = PaypalSubscriptionAnalytics.revenueByMonth(subs).keys.toList();
@@ -433,7 +433,7 @@ void main() {
     // ── revenueTrend ──────────────────────────────────────
 
     group('revenueTrend()', () {
-      Map<String, dynamic> _subWithTime(String time, double value) => {
+      Map<String, dynamic> subWithTime(String time, double value) => {
         'status': 'ACTIVE',
         'billing_info': {
           'last_payment': {
@@ -450,15 +450,15 @@ void main() {
       };
 
       test('first month has null growthPercent', () {
-        final subs = [_subWithTime('2025-01-01T00:00:00Z', 100)];
+        final subs = [subWithTime('2025-01-01T00:00:00Z', 100)];
         final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
         expect(trend.first.growthPercent, isNull);
       });
 
       test('positive growth detected', () {
         final subs = [
-          _subWithTime('2025-01-01T00:00:00Z', 100),
-          _subWithTime('2025-02-01T00:00:00Z', 120),
+          subWithTime('2025-01-01T00:00:00Z', 100),
+          subWithTime('2025-02-01T00:00:00Z', 120),
         ];
         final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
         expect(trend[1].isGrowth, isTrue);
@@ -467,8 +467,8 @@ void main() {
 
       test('negative growth (decline) detected', () {
         final subs = [
-          _subWithTime('2025-01-01T00:00:00Z', 100),
-          _subWithTime('2025-02-01T00:00:00Z', 80),
+          subWithTime('2025-01-01T00:00:00Z', 100),
+          subWithTime('2025-02-01T00:00:00Z', 80),
         ];
         final trend = PaypalSubscriptionAnalytics.revenueTrend(subs);
         expect(trend[1].isDecline, isTrue);

@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 
 import '../core/enums/paypal_enums.dart';
 import '../domain/entities/payment_result.dart';
-import '../domain/entities/paypal_config.dart';
 
 // ═══════════════════════════════════════════════════════════
 // Funding eligibility models
@@ -171,7 +170,7 @@ abstract final class PaypalFundingEligibility {
 
       final queryParams = {
         'currency_code': currencyCode,
-        if (buyerCountryCode != null) 'country_code': buyerCountryCode,
+        'country_code': ?buyerCountryCode,
       };
       final uri = Uri.parse('$baseUrl/v1/credit/assessed-financing')
           .replace(queryParameters: queryParams);

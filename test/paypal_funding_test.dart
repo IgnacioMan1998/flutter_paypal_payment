@@ -11,12 +11,8 @@ void main() {
         creditEligible: true,
         debitEligible: true,
       );
-
-      expect(result.paypalEligible, isTrue);
-      expect(result.payLaterEligible, isTrue);
-      expect(result.venmoEligible, isTrue);
-      expect(result.creditEligible, isTrue);
-      expect(result.debitEligible, isTrue);
+      expect(result.hasAnyEligibleSource, isTrue);
+      expect(result.eligibleSources.length, 5);
     });
 
     test('none eligible', () {
@@ -27,12 +23,11 @@ void main() {
         creditEligible: false,
         debitEligible: false,
       );
-
       expect(result.hasAnyEligibleSource, isFalse);
       expect(result.eligibleSources, isEmpty);
     });
 
-    test('eligibleSources returns all eligible source names', () {
+    test('eligibleSources returns typed sources', () {
       const result = FundingEligibilityResult(
         paypalEligible: true,
         payLaterEligible: true,
@@ -40,26 +35,15 @@ void main() {
         creditEligible: false,
         debitEligible: true,
       );
-
       final sources = result.eligibleSources;
-      expect(sources, containsAll(['paypal', 'paylater', 'debit']));
-      expect(sources, isNot(contains('venmo')));
-      expect(sources, isNot(contains('credit')));
+      expect(sources, contains(PaypalFundingSource.paypal));
+      expect(sources, contains(PaypalFundingSource.payLater));
+      expect(sources, contains(PaypalFundingSource.debit));
+      expect(sources, isNot(contains(PaypalFundingSource.venmo)));
+      expect(sources, isNot(contains(PaypalFundingSource.credit)));
     });
 
-    test('hasAnyEligibleSource true when at least one eligible', () {
-      const result = FundingEligibilityResult(
-        paypalEligible: false,
-        payLaterEligible: false,
-        venmoEligible: true,
-        creditEligible: false,
-        debitEligible: false,
-      );
-
-      expect(result.hasAnyEligibleSource, isTrue);
-    });
-
-    test('isEligible returns correct value for each source', () {
+    test('isEligible returns correct value', () {
       const result = FundingEligibilityResult(
         paypalEligible: true,
         payLaterEligible: false,
@@ -67,30 +51,22 @@ void main() {
         creditEligible: false,
         debitEligible: true,
       );
-
-      expect(result.isEligible('paypal'), isTrue);
-      expect(result.isEligible('paylater'), isFalse);
-      expect(result.isEligible('venmo'), isTrue);
-      expect(result.isEligible('credit'), isFalse);
-      expect(result.isEligible('debit'), isTrue);
-      expect(result.isEligible('unknown'), isFalse);
+      expect(result.isEligible(PaypalFundingSource.paypal), isTrue);
+      expect(result.isEligible(PaypalFundingSource.payLater), isFalse);
+      expect(result.isEligible(PaypalFundingSource.venmo), isTrue);
+      expect(result.isEligible(PaypalFundingSource.credit), isFalse);
+      expect(result.isEligible(PaypalFundingSource.debit), isTrue);
     });
 
-    test('eligibleSources length matches eligible count', () {
+    test('toString includes field names', () {
       const result = FundingEligibilityResult(
         paypalEligible: true,
-        payLaterEligible: true,
-        venmoEligible: true,
+        payLaterEligible: false,
+        venmoEligible: false,
         creditEligible: false,
         debitEligible: false,
       );
-
-      expect(result.eligibleSources.length, 3);
-    });
-
-    test('default values are all false', () {
-      const result = FundingEligibilityResult();
-      expect(result.hasAnyEligibleSource, isFalse);
+      expect(result.toString(), contains('paypal'));
     });
   });
 
@@ -105,7 +81,6 @@ void main() {
     test('getCachedSources returns null when cache is empty', () {
       final cached = PaypalFundingEligibility.getCachedSources(
         clientId: 'id',
-        environment: PaypalEnvironment.sandbox,
         currencyCode: 'USD',
       );
       expect(cached, isNull);

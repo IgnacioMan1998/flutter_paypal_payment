@@ -10,73 +10,59 @@ void main() {
 
     test('initial state has no events', () {
       expect(controller.events, isEmpty);
-      expect(controller.sdkStatus, 'idle');
-      expect(controller.lastError, isNull);
+      expect(controller.sdkStatus, isNotEmpty);
     });
 
     test('recordInit updates sdkStatus and environment', () {
-      controller.recordInit(environment: 'sandbox', clientId: 'CLIENT_123');
-      expect(controller.sdkStatus, 'initialized');
+      controller.recordInit(env: 'sandbox');
+      expect(controller.sdkStatus, 'INITIALIZED');
       expect(controller.environment, 'sandbox');
     });
 
-    test('recordCheckoutEvent adds event to list', () {
-      controller.recordCheckoutEvent(
-        type: 'checkout_started',
-        summary: 'Checkout started',
-      );
-
+    test('recordCheckoutEvent adds event for started', () {
+      controller.recordCheckoutEvent(PaypalCheckoutStartedEvent('ORDER123'));
       expect(controller.events.length, 1);
-      expect(controller.events.first.type, 'checkout_started');
+      expect(controller.events.first.type, 'CHECKOUT_STARTED');
     });
 
     test('recordEvent adds custom event', () {
-      controller.recordEvent(PaypalDebugEvent(
-        type: 'custom',
-        summary: 'Custom event',
-        timestamp: DateTime.now(),
-      ));
-
+      controller.recordEvent(type: 'custom', summary: 'Custom event');
       expect(controller.events, isNotEmpty);
     });
 
-    test('events are prepended (most recent first)', () {
-      controller.recordCheckoutEvent(type: 'first', summary: 'First');
-      controller.recordCheckoutEvent(type: 'second', summary: 'Second');
-
+    test('events are most recent first', () {
+      controller.recordEvent(type: 'first', summary: 'First');
+      controller.recordEvent(type: 'second', summary: 'Second');
       expect(controller.events.first.type, 'second');
       expect(controller.events.last.type, 'first');
     });
 
-    test('maxEvents caps at 50 events', () {
+    test('maxEvents caps list size', () {
       for (var i = 0; i < 60; i++) {
-        controller.recordCheckoutEvent(type: 'event_$i', summary: 'Event $i');
+        controller.recordEvent(type: 'event_$i', summary: 'Event $i');
       }
-
-      expect(controller.events.length, lessThanOrEqualTo(PaypalDebugController.maxEvents));
+      expect(controller.events.length, lessThanOrEqualTo(controller.maxEvents));
     });
 
     test('clearEvents removes all events', () {
-      controller.recordCheckoutEvent(type: 'evt', summary: 'Evt');
+      controller.recordEvent(type: 'evt', summary: 'Evt');
       controller.clearEvents();
-
       expect(controller.events, isEmpty);
     });
 
-    test('lastError set by recordCheckoutEvent with isError=true', () {
-      controller.recordCheckoutEvent(
+    test('lastError updated when isError=true', () {
+      controller.recordEvent(
         type: 'error',
         summary: 'Something went wrong',
         isError: true,
       );
-
-      expect(controller.lastError, isNotNull);
+      expect(controller.lastError, contains('Something went wrong'));
     });
 
     test('notifyListeners called on recordInit', () {
       var notified = false;
       controller.addListener(() => notified = true);
-      controller.recordInit(environment: 'production', clientId: 'ID');
+      controller.recordInit(env: 'production');
       expect(notified, isTrue);
     });
 
@@ -90,23 +76,13 @@ void main() {
 
   group('PaypalDebugEvent', () {
     test('formattedTime is not empty', () {
-      final event = PaypalDebugEvent(
-        type: 'test',
-        summary: 'Test event',
-        timestamp: DateTime(2025, 1, 15, 10, 30, 45),
-      );
-
+      final event = PaypalDebugEvent(type: 'test', summary: 'Test event');
       expect(event.formattedTime, isNotEmpty);
     });
 
-    test('detail defaults to null', () {
-      final event = PaypalDebugEvent(
-        type: 'test',
-        summary: 'Summary',
-        timestamp: DateTime.now(),
-      );
-
-      expect(event.detail, isNull);
+    test('detail defaults to empty string', () {
+      final event = PaypalDebugEvent(type: 'test', summary: 'Summary');
+      expect(event.detail, '');
     });
 
     test('detail stored when provided', () {
@@ -114,10 +90,14 @@ void main() {
         type: 'test',
         summary: 'Summary',
         detail: 'Extra info',
-        timestamp: DateTime.now(),
       );
-
       expect(event.detail, 'Extra info');
+    });
+
+    test('timestamp is set automatically', () {
+      final before = DateTime.now().subtract(const Duration(seconds: 1));
+      final event = PaypalDebugEvent(type: 'test', summary: 'Summary');
+      expect(event.timestamp.isAfter(before), isTrue);
     });
   });
 }

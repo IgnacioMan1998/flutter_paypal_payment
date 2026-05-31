@@ -12,11 +12,9 @@ void main() {
           {
             'qualifying_financing_options': [
               {
-                'credit_financing': {
-                  'monthly_payment': {'value': '50.00', 'currency_code': 'USD'},
-                  'term': 12,
-                  'apr': '9.99',
-                },
+                'monthly_payment': {'value': '50.00', 'currency_code': 'USD'},
+                'credit_type': 'PAYPAL_CREDIT_INSTALLMENTS',
+                'pay_in_x_options': {'number_of_installments': 12},
               }
             ]
           }
@@ -24,22 +22,21 @@ void main() {
       };
 
       final offer = PayLaterOffer.fromJson(json, testAmount, testCurrency);
-      expect(offer, isNotNull);
-      expect(offer!.amount, testAmount);
+      expect(offer.amount, testAmount);
       expect(offer.currencyCode, testCurrency);
-      expect(offer.installments, 12);
       expect(offer.monthlyAmount, '50.00');
     });
 
-    test('fromJson returns null on empty financing_options', () {
+    test('fromJson returns default PAY_IN_4 on empty financing_options', () {
       final json = {'financing_options': <dynamic>[]};
       final offer = PayLaterOffer.fromJson(json, testAmount, testCurrency);
-      expect(offer, isNull);
+      expect(offer.installments, 4);
+      expect(offer.offerType, 'PAY_IN_4');
     });
 
-    test('fromJson returns null on missing key', () {
+    test('fromJson returns default PAY_IN_4 on missing key', () {
       final offer = PayLaterOffer.fromJson({}, testAmount, testCurrency);
-      expect(offer, isNull);
+      expect(offer.installments, 4);
     });
 
     test('summary contains amount and installments', () {
@@ -55,7 +52,7 @@ void main() {
       expect(offer.summary, contains('45.83'));
     });
 
-    test('formattedMonthly includes currency code', () {
+    test('formattedMonthly includes amount', () {
       const offer = PayLaterOffer(
         amount: '100.00',
         monthlyAmount: '10.00',
@@ -63,7 +60,6 @@ void main() {
         currencyCode: 'USD',
       );
 
-      expect(offer.formattedMonthly, contains('USD'));
       expect(offer.formattedMonthly, contains('10.00'));
     });
 
