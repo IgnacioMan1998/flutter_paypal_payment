@@ -626,4 +626,58 @@ class PaypalOrderService {
     _tokenExpiry = null;
     _client.close();
   }
+
+  // ─── Pay Later ───────────────────────────────────────────
+
+  /// Fetch Pay Later financing eligibility for the given [amount].
+  ///
+  /// Calls `POST /v1/credit/assessed-financing` and returns the raw response.
+  /// An empty map is returned when no offers are available (204 No Content).
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getPayLaterOffer({
+    required String amount,
+    String currencyCode = 'USD',
+    String? buyerCountryCode,
+  }) async {
+    final tokenResult = await _getAccessToken();
+
+    return tokenResult.fold(
+      (failure) => Left(failure),
+      (token) async {
+        try {
+          final body = jsonEncode({
+            'financing_country_code': buyerCountryCode ?? 'US',
+            'transaction_amount': {
+              'value': amount,
+              'currency_code': currencyCode,
+            },
+          });
+
+          final response = await _post(
+            Uri.parse('$_baseUrl/v1/credit/assessed-financing'),
+            {
+              'Authorization': 'Bearer $token',
+              'Content-Type': PaypalApiConstants.contentTypeJson,
+            },
+            body,
+          );
+
+          if (response.statusCode == 204) return const Right({});
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            return Right(jsonDecode(response.body) as Map<String, dynamic>);
+          }
+
+          return Left(PaymentFailure(
+            message: PaypalUtils.safeErrorMessage(response),
+            code: 'PAY_LATER_ERROR',
+          ));
+        } catch (e) {
+          return const Left(PaymentFailure(
+            message: 'Failed to fetch Pay Later offer',
+            code: 'PAY_LATER_ERROR',
+          ));
+        }
+      },
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../paypal_checkout_flutter.dart';
 import 'core/constants/paypal_api_constants.dart';
 import 'core/constants/paypal_error_codes.dart';
 import 'core/constants/paypal_error_messages.dart';
@@ -14,8 +15,21 @@ import 'domain/entities/payment_result.dart';
 import 'domain/entities/paypal_config.dart';
 import 'domain/entities/vault.dart';
 import 'domain/repositories/paypal_repository.dart';
+import 'events/paypal_event_bus.dart';
+import 'logger/paypal_logger.dart';
 
 /// Main entry point for the PayPal Payment plugin.
+///
+/// ## Reactive events
+/// Subscribe to payment lifecycle events via [events]:
+/// ```dart
+/// paypal.events.checkoutCompleted.listen((e) {
+///   print('Order: ${e.result.orderId}');
+/// });
+/// ```
+///
+/// ## Logging
+/// Adjust verbosity via [PaypalLogger.minLevel] before calling [init].
 class FlutterPaypalPayment {
   FlutterPaypalPayment({PaypalRepository? repository})
       : _repository = repository ?? PaypalRepositoryImpl();
@@ -23,18 +37,51 @@ class FlutterPaypalPayment {
   final PaypalRepository _repository;
   PaypalConfig? _config;
 
+  /// Reactive event bus. Listen to streams here to receive payment lifecycle
+  /// events without polling or callbacks.
+  ///
+  /// Call [dispose] to close all streams when this instance is no longer needed.
+  final PaypalEventBus events = PaypalEventBus.create();
+
   /// Initialize the PayPal SDK. Must be called once before any payment method.
   Future<Either<PaymentFailure, Unit>> init(PaypalConfig config) {
     _config = config;
+    PaypalLogger.info(
+      'Initializing PayPal SDK — env: ${config.environment.name}',
+      tag: 'FlutterPaypalPayment',
+    );
     return _repository.initialize(config);
   }
+
+  /// Release all event stream resources. Call when this instance is
+  /// permanently discarded (e.g., in a State.dispose() or service teardown).
+  void dispose() => events.dispose();
 
   // ─── PayPal Checkout ───
 
   /// Pay with PayPal checkout (order created on your backend).
   Future<Either<PaymentFailure, PaymentSuccess>> pay(
-          PaymentRequest request) =>
-      _repository.processPayment(request);
+      PaymentRequest request) async {
+    PaypalLogger.info(
+      'Starting PayPal checkout — orderId: ${request.orderId}',
+      tag: 'FlutterPaypalPayment',
+    );
+    events.emitCheckoutStarted(PaypalCheckoutStartedEvent(request.orderId));
+    final result = await _repository.processPayment(request);
+    result.fold(
+      (f) {
+        PaypalLogger.error('Checkout failed — ${f.message}',
+            tag: 'FlutterPaypalPayment');
+        events.emitCheckoutFailed(PaypalCheckoutFailedEvent(f));
+      },
+      (s) {
+        PaypalLogger.info('Checkout completed — orderId: ${s.orderId}',
+            tag: 'FlutterPaypalPayment');
+        events.emitCheckoutCompleted(PaypalCheckoutCompletedEvent(s));
+      },
+    );
+    return result;
+  }
 
   /// Pay with PayPal checkout without a backend.
   /// Creates the order, opens checkout, and captures — all in one call.
@@ -93,8 +140,26 @@ class FlutterPaypalPayment {
   /// Pay directly with a card (no PayPal login required).
   /// The order must be created beforehand (backend or [PaypalOrderService]).
   Future<Either<CardPaymentFailure, CardPaymentSuccess>> payWithCard(
-          CardPaymentRequest request) =>
-      _repository.processCardPayment(request);
+      CardPaymentRequest request) async {
+    PaypalLogger.info(
+      'Starting card payment — orderId: ${request.orderId}',
+      tag: 'FlutterPaypalPayment',
+    );
+    final result = await _repository.processCardPayment(request);
+    result.fold(
+      (f) {
+        PaypalLogger.error('Card payment failed — ${f.message}',
+            tag: 'FlutterPaypalPayment');
+        events.emitCardCheckoutFailed(PaypalCardCheckoutFailedEvent(f));
+      },
+      (s) {
+        PaypalLogger.info('Card payment completed — orderId: ${s.orderId}',
+            tag: 'FlutterPaypalPayment');
+        events.emitCardCheckoutCompleted(PaypalCardCheckoutCompletedEvent(s));
+      },
+    );
+    return result;
+  }
 
   /// Pay directly with a card without a backend.
   /// Creates the order, processes the card, and captures — all in one call.
@@ -159,14 +224,45 @@ class FlutterPaypalPayment {
   /// Vault a PayPal account for future payments.
   /// Requires a setup token created via PayPal Setup Tokens API.
   Future<Either<VaultFailure, VaultSuccess>> vaultPaypal(
-          VaultPaypalRequest request) =>
-      _repository.vaultPaypal(request);
+      VaultPaypalRequest request) async {
+    PaypalLogger.info('Vaulting PayPal account', tag: 'FlutterPaypalPayment');
+    final result = await _repository.vaultPaypal(request);
+    result.fold(
+      (f) {
+        PaypalLogger.error('Vault (PayPal) failed — ${f.message}',
+            tag: 'FlutterPaypalPayment');
+        events.emitVaultFailed(PaypalVaultFailedEvent(f));
+      },
+      (s) {
+        PaypalLogger.info(
+            'Vault (PayPal) completed — tokenId: ${s.setupTokenId}',
+            tag: 'FlutterPaypalPayment');
+        events.emitVaultCompleted(PaypalVaultCompletedEvent(s));
+      },
+    );
+    return result;
+  }
 
   /// Vault a card for future payments.
   /// Requires a setup token created via PayPal Setup Tokens API.
   Future<Either<VaultFailure, VaultSuccess>> vaultCard(
-          VaultCardRequest request) =>
-      _repository.vaultCard(request);
+      VaultCardRequest request) async {
+    PaypalLogger.info('Vaulting card', tag: 'FlutterPaypalPayment');
+    final result = await _repository.vaultCard(request);
+    result.fold(
+      (f) {
+        PaypalLogger.error('Vault (card) failed — ${f.message}',
+            tag: 'FlutterPaypalPayment');
+        events.emitVaultFailed(PaypalVaultFailedEvent(f));
+      },
+      (s) {
+        PaypalLogger.info('Vault (card) completed — tokenId: ${s.setupTokenId}',
+            tag: 'FlutterPaypalPayment');
+        events.emitVaultCompleted(PaypalVaultCompletedEvent(s));
+      },
+    );
+    return result;
+  }
 
   /// Vault a PayPal account without a backend.
   /// Creates the setup token, opens vault flow, and creates payment token — all in one call.
@@ -1024,6 +1120,56 @@ class FlutterPaypalPayment {
       );
     } finally {
       service.dispose();
+    }
+  }
+
+  // ─── Pay Later ───
+
+  /// Fetch available Pay Later financing offers for a given [amount] and
+  /// [currencyCode] via the PayPal Financing Eligibility API.
+  ///
+  /// Returns the raw response from
+  /// `POST /v1/credit/assessed-financing` or a descriptive failure.
+  ///
+  /// ```dart
+  /// final offer = await paypal.getPayLaterOffer(
+  ///   clientSecret: 'SECRET',
+  ///   amount: '499.99',
+  ///   currencyCode: 'USD',
+  ///   buyerCountryCode: 'US',
+  /// );
+  /// offer.fold(
+  ///   (failure) => print(failure.message),
+  ///   (data) => print(data),
+  /// );
+  /// ```
+  Future<Either<PaymentFailure, Map<String, dynamic>>> getPayLaterOffer({
+    required String clientSecret,
+    required String amount,
+    String currencyCode = 'USD',
+    String? buyerCountryCode,
+  }) async {
+    final config = _config;
+    if (config == null) {
+      return const Left(PaymentFailure(
+        message: PaypalErrorMessages.notInitialized,
+        code: PaypalErrorCodes.notInitialized,
+      ));
+    }
+
+    final orderService = PaypalOrderService(
+      config: config,
+      clientSecret: clientSecret,
+    );
+
+    try {
+      return await orderService.getPayLaterOffer(
+        amount: amount,
+        currencyCode: currencyCode,
+        buyerCountryCode: buyerCountryCode,
+      );
+    } finally {
+      orderService.dispose();
     }
   }
 }

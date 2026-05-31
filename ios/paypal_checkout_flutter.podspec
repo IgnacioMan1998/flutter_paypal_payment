@@ -18,7 +18,7 @@ Supports PayPal checkout, card payments, and vaulting.
   s.dependency 'PayPal/CorePayments', '~> 2.0'
   s.dependency 'PayPal/CardPayments', '~> 2.0'
   s.dependency 'PayPal/PayPalWebPayments', '~> 2.0'
-  s.platform         = :ios, '14.0'
+  s.platform         = :ios, '16.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
