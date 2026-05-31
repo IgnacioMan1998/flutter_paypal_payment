@@ -5,12 +5,12 @@ library;
 
 /// The resource type carried inside a PayPal webhook payload.
 enum PaypalWebhookResourceType {
-  checkout_order,
+  checkoutOrder,
   capture,
   authorization,
   refund,
   subscription,
-  billing_agreement,
+  billingAgreement,
   payment,
   unknown,
 }
@@ -173,12 +173,12 @@ class PaypalWebhookEvent {
   static PaypalWebhookResourceType _parseResourceType(String raw) =>
       switch (raw) {
         'checkout_order' || 'order' =>
-          PaypalWebhookResourceType.checkout_order,
+          PaypalWebhookResourceType.checkoutOrder,
         'capture' => PaypalWebhookResourceType.capture,
         'authorization' => PaypalWebhookResourceType.authorization,
         'refund' => PaypalWebhookResourceType.refund,
         'subscription' => PaypalWebhookResourceType.subscription,
-        'billing_agreement' => PaypalWebhookResourceType.billing_agreement,
+        'billing_agreement' => PaypalWebhookResourceType.billingAgreement,
         'payment' => PaypalWebhookResourceType.payment,
         _ => PaypalWebhookResourceType.unknown,
       };

@@ -48,7 +48,7 @@ void main() {
       final event = PaypalWebhookEvent.fromJson(json);
 
       expect(event.eventType, PaypalWebhookEventType.checkoutOrderApproved);
-      expect(event.resourceType, PaypalWebhookResourceType.checkout_order);
+      expect(event.resourceType, PaypalWebhookResourceType.checkoutOrder);
     });
 
     test('parses BILLING.SUBSCRIPTION.ACTIVATED correctly', () {
