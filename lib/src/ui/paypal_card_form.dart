@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,7 +7,6 @@ import '../domain/entities/payment_card.dart';
 import 'paypal_card_form_theme.dart';
 
 export 'paypal_card_form_theme.dart';
-
 
 /// A PayPal-styled card payment form.
 ///
@@ -42,9 +40,13 @@ class PaypalCardForm extends StatefulWidget {
     this.submitButtonText = 'Complete Order',
     this.requireCardholderName = false,
     this.requireBillingPostalCode = false,
+    this.billingCountryCode,
     this.isLoading = false,
     this.theme,
-  });
+  }) : assert(
+         !requireBillingPostalCode || billingCountryCode != null,
+         'billingCountryCode is required when collecting a billing postal code.',
+       );
 
   /// Called when all fields are valid and the user taps the pay button.
   /// Receives a fully-validated [PaymentCard].
@@ -68,6 +70,10 @@ class PaypalCardForm extends StatefulWidget {
 
   /// Whether a billing postal code field is required. Defaults to false.
   final bool requireBillingPostalCode;
+
+  /// Optional ISO 3166-1 alpha-2 country code sent with the billing postal
+  /// code, for example `US`.
+  final String? billingCountryCode;
 
   /// External loading state to disable the form while a payment is in flight.
   final bool isLoading;
@@ -101,11 +107,9 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
   bool get _busy => _submitting || widget.isLoading;
 
-  String get _rawNumber =>
-      _numberController.text.replaceAll(RegExp(r'\D'), '');
+  String get _rawNumber => _numberController.text.replaceAll(RegExp(r'\D'), '');
 
-  String get _rawExpiry =>
-      _expiryController.text.replaceAll(RegExp(r'\D'), '');
+  String get _rawExpiry => _expiryController.text.replaceAll(RegExp(r'\D'), '');
 
   @override
   void initState() {
@@ -177,6 +181,9 @@ class _PaypalCardFormState extends State<PaypalCardForm>
 
   String? _validateZip(String? value) {
     if (!widget.requireBillingPostalCode) return null;
+    if (widget.billingCountryCode == null) {
+      return 'Billing country code is required';
+    }
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Postal code is required';
     if (v.length < 3 || v.length > 10) return 'Invalid postal code';
@@ -199,6 +206,12 @@ class _PaypalCardFormState extends State<PaypalCardForm>
         cardholderName: _nameController.text.trim().isEmpty
             ? null
             : _nameController.text.trim(),
+        billingAddress: widget.requireBillingPostalCode
+            ? PaymentCardBillingAddress(
+                postalCode: _zipController.text.trim(),
+                countryCode: widget.billingCountryCode!,
+              )
+            : null,
       );
       await widget.onSubmit(card);
     } catch (e) {
@@ -249,7 +262,9 @@ class _PaypalCardFormState extends State<PaypalCardForm>
           hintText: hint,
           labelStyle: TextStyle(color: t.inputLabelColor, fontSize: 13),
           hintStyle: TextStyle(
-              color: t.inputLabelColor.withValues(alpha: 0.7), fontSize: 14),
+            color: t.inputLabelColor.withValues(alpha: 0.7),
+            fontSize: 14,
+          ),
           filled: true,
           fillColor: t.inputFillColor,
           prefixIcon: prefixIcon,
@@ -278,8 +293,10 @@ class _PaypalCardFormState extends State<PaypalCardForm>
             borderSide: BorderSide(color: t.errorColor, width: 1.5),
           ),
           errorStyle: TextStyle(color: t.errorColor, fontSize: 11),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 18,
+          ),
         ),
         validator: validator,
         onFieldSubmitted: (_) => onSubmitted?.call(),
@@ -294,301 +311,309 @@ class _PaypalCardFormState extends State<PaypalCardForm>
       children: [
         Container(
           decoration: BoxDecoration(
-        color: t.backgroundColor,
-        borderRadius: BorderRadius.circular(t.containerRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 32,
-            offset: const Offset(0, -4),
+            color: t.backgroundColor,
+            borderRadius: BorderRadius.circular(t.containerRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 32,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Drag handle ──
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 4),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: t.dividerColor,
-                  borderRadius: BorderRadius.circular(2),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Drag handle ──
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 4),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: t.dividerColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            // ── Header ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                children: [
-                  if (widget.amount != null) ...[
-                    Text(
-                      '\$${widget.amount}',
-                      style: TextStyle(
-                        color: t.primaryColor,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.currency ?? 'USD',
-                      style: TextStyle(
-                        color: t.secondaryColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ] else
-                    const SizedBox(height: 8),
-                  Divider(color: t.dividerColor, height: 1),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Section label ──
-                  Text(
-                    'Add debit or credit card',
-                    style: TextStyle(
-                      color: t.primaryColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Card number ──
-                  _buildField(
-                    widgetKey: const Key('paypal_card_number'),
-                    controller: _numberController,
-                    focusNode: _numberFocus,
-                    label: 'Card number',
-                    hint: '0000 0000 0000 0000',
-                    validator: _validateNumber,
-                    formatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      _CardNumberFormatter(),
-                    ],
-                    prefixIcon: SizedBox(
-                      key: const Key('paypal_card_type_icon'),
-                      width: 52,
-                      child: Center(child: _cardType.fieldIcon),
-                    ),
-                    onSubmitted: () =>
-                        FocusScope.of(context).requestFocus(_expiryFocus),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Expiry + CVV ──
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // ── Header ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: _buildField(
-                          widgetKey: const Key('paypal_card_expiry'),
-                          controller: _expiryController,
-                          focusNode: _expiryFocus,
-                          label: 'Expiry date',
-                          hint: 'MM/YYYY',
-                          validator: _validateExpiry,
-                          formatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            _ExpiryFormatter(),
-                          ],
-                          prefixIcon: Icon(
-                            Icons.calendar_today_outlined,
-                            size: 16,
-                            color: t.inputLabelColor,
+                      if (widget.amount != null) ...[
+                        Text(
+                          '\$${widget.amount}',
+                          style: TextStyle(
+                            color: t.primaryColor,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                           ),
-                          onSubmitted: () =>
-                              FocusScope.of(context).requestFocus(_cvvFocus),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.currency ?? 'USD',
+                          style: TextStyle(
+                            color: t.secondaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ] else
+                        const SizedBox(height: 8),
+                      Divider(color: t.dividerColor, height: 1),
+                    ],
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Section label ──
+                      Text(
+                        'Add debit or credit card',
+                        style: TextStyle(
+                          color: t.primaryColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildField(
-                          widgetKey: const Key('paypal_card_cvv'),
-                          controller: _cvvController,
-                          focusNode: _cvvFocus,
-                          label: 'CVV',
-                          hint: '•••',
-                          validator: _validateCvv,
-                          obscure: _obscureCvv,
-                          formatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
-                          ],
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureCvv
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 18,
-                              color: t.inputLabelColor,
+                      const SizedBox(height: 16),
+
+                      // ── Card number ──
+                      _buildField(
+                        widgetKey: const Key('paypal_card_number'),
+                        controller: _numberController,
+                        focusNode: _numberFocus,
+                        label: 'Card number',
+                        hint: '0000 0000 0000 0000',
+                        validator: _validateNumber,
+                        formatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _CardNumberFormatter(),
+                        ],
+                        prefixIcon: SizedBox(
+                          key: const Key('paypal_card_type_icon'),
+                          width: 52,
+                          child: Center(child: _cardType.fieldIcon),
+                        ),
+                        onSubmitted: () =>
+                            FocusScope.of(context).requestFocus(_expiryFocus),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Expiry + CVV ──
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildField(
+                              widgetKey: const Key('paypal_card_expiry'),
+                              controller: _expiryController,
+                              focusNode: _expiryFocus,
+                              label: 'Expiry date',
+                              hint: 'MM/YYYY',
+                              validator: _validateExpiry,
+                              formatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                _ExpiryFormatter(),
+                              ],
+                              prefixIcon: Icon(
+                                Icons.calendar_today_outlined,
+                                size: 16,
+                                color: t.inputLabelColor,
+                              ),
+                              onSubmitted: () => FocusScope.of(
+                                context,
+                              ).requestFocus(_cvvFocus),
                             ),
-                            onPressed: () =>
-                                setState(() => _obscureCvv = !_obscureCvv),
                           ),
-                          textInputAction: widget.requireCardholderName
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildField(
+                              widgetKey: const Key('paypal_card_cvv'),
+                              controller: _cvvController,
+                              focusNode: _cvvFocus,
+                              label: 'CVV',
+                              hint: '•••',
+                              validator: _validateCvv,
+                              obscure: _obscureCvv,
+                              formatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureCvv
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 18,
+                                  color: t.inputLabelColor,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscureCvv = !_obscureCvv),
+                              ),
+                              textInputAction: widget.requireCardholderName
+                                  ? TextInputAction.next
+                                  : TextInputAction.done,
+                              onSubmitted: widget.requireCardholderName
+                                  ? () => FocusScope.of(
+                                      context,
+                                    ).requestFocus(_nameFocus)
+                                  : _handleSubmit,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // ── Cardholder name ──
+                      if (widget.requireCardholderName) ...[
+                        const SizedBox(height: 12),
+                        _buildField(
+                          widgetKey: const Key('paypal_card_name'),
+                          controller: _nameController,
+                          focusNode: _nameFocus,
+                          label: 'Name on card',
+                          hint: 'JOHN DOE',
+                          keyboardType: TextInputType.name,
+                          textInputAction: widget.requireBillingPostalCode
                               ? TextInputAction.next
                               : TextInputAction.done,
-                          onSubmitted: widget.requireCardholderName
-                              ? () => FocusScope.of(context)
-                                  .requestFocus(_nameFocus)
+                          formatters: [],
+                          validator: _validateName,
+                          onSubmitted: widget.requireBillingPostalCode
+                              ? () => FocusScope.of(
+                                  context,
+                                ).requestFocus(_zipFocus)
                               : _handleSubmit,
                         ),
-                      ),
+                      ],
+
+                      // ── Billing postal code ──
+                      if (widget.requireBillingPostalCode) ...[
+                        const SizedBox(height: 12),
+                        _buildField(
+                          widgetKey: const Key('paypal_card_zip'),
+                          controller: _zipController,
+                          focusNode: _zipFocus,
+                          label: 'Billing postal code',
+                          hint: '90210',
+                          keyboardType: TextInputType.streetAddress,
+                          textInputAction: TextInputAction.done,
+                          formatters: [LengthLimitingTextInputFormatter(10)],
+                          validator: _validateZip,
+                          onSubmitted: _handleSubmit,
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
                     ],
                   ),
+                ),
 
-                  // ── Cardholder name ──
-                  if (widget.requireCardholderName) ...[
-                    const SizedBox(height: 12),
-                    _buildField(
-                      widgetKey: const Key('paypal_card_name'),
-                      controller: _nameController,
-                      focusNode: _nameFocus,
-                      label: 'Name on card',
-                      hint: 'JOHN DOE',
-                      keyboardType: TextInputType.name,
-                      textInputAction: widget.requireBillingPostalCode
-                          ? TextInputAction.next
-                          : TextInputAction.done,
-                      formatters: [],
-                      validator: _validateName,
-                      onSubmitted: widget.requireBillingPostalCode
-                          ? () => FocusScope.of(context).requestFocus(_zipFocus)
-                          : _handleSubmit,
-                    ),
-                  ],
+                // ── CTA section ──
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Divider(color: t.dividerColor, height: 1),
+                      const SizedBox(height: 16),
 
-                  // ── Billing postal code ──
-                  if (widget.requireBillingPostalCode) ...[
-                    const SizedBox(height: 12),
-                    _buildField(
-                      widgetKey: const Key('paypal_card_zip'),
-                      controller: _zipController,
-                      focusNode: _zipFocus,
-                      label: 'Billing postal code',
-                      hint: '90210',
-                      keyboardType: TextInputType.streetAddress,
-                      textInputAction: TextInputAction.done,
-                      formatters: [
-                        LengthLimitingTextInputFormatter(10),
-                      ],
-                      validator: _validateZip,
-                      onSubmitted: _handleSubmit,
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-
-            // ── CTA section ──
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Divider(color: t.dividerColor, height: 1),
-                  const SizedBox(height: 16),
-
-                  // Complete Order button
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _busy ? null : _handleSubmit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: t.buttonColor,
-                        disabledBackgroundColor:
-                            t.buttonColor.withValues(alpha: 0.45),
-                        foregroundColor: t.buttonTextColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(t.buttonRadius),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _submitting
-                          ? SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: t.buttonTextColor,
-                              ),
-                            )
-                          : Text(
-                              widget.submitButtonText,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
+                      // Complete Order button
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _busy ? null : _handleSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: t.buttonColor,
+                            disabledBackgroundColor: t.buttonColor.withValues(
+                              alpha: 0.45,
+                            ),
+                            foregroundColor: t.buttonTextColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                t.buttonRadius,
                               ),
                             ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Payment method rights link
-                  GestureDetector(
-                    onTap: () {},
-                    child: Center(
-                      child: Text(
-                        'Payment method rights',
-                        style: TextStyle(
-                          color: t.accentColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                          decorationColor: t.accentColor,
+                            elevation: 0,
+                          ),
+                          child: _submitting
+                              ? SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: t.buttonTextColor,
+                                  ),
+                                )
+                              : Text(
+                                  widget.submitButtonText,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                  // Secured by PayPal footer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.lock_outline, size: 12, color: t.secondaryColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Secured by PayPal',
-                        style: TextStyle(
-                          color: t.secondaryColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                      // Payment method rights link
+                      GestureDetector(
+                        onTap: () {},
+                        child: Center(
+                          child: Text(
+                            'Payment method rights',
+                            style: TextStyle(
+                              color: t.accentColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              decoration: TextDecoration.underline,
+                              decorationColor: t.accentColor,
+                            ),
+                          ),
                         ),
                       ),
+
+                      const SizedBox(height: 14),
+
+                      // Secured by PayPal footer
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.lock_outline,
+                            size: 12,
+                            color: t.secondaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Secured by PayPal',
+                            style: TextStyle(
+                              color: t.secondaryColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
         ),
 
         // ── Full-screen overlay while submitting ──
@@ -711,7 +736,6 @@ extension _CardTypeLogoExt on _CardType {
         );
     }
   }
-
 }
 
 // ── Input formatters ────────────────────────────────────

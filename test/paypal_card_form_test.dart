@@ -17,6 +17,8 @@ PaypalCardForm _form({
   String? currency,
   String submitButtonText = 'Complete Order',
   bool requireCardholderName = false,
+  bool requireBillingPostalCode = false,
+  String? billingCountryCode,
   bool isLoading = false,
 }) {
   return PaypalCardForm(
@@ -26,6 +28,8 @@ PaypalCardForm _form({
     currency: currency,
     submitButtonText: submitButtonText,
     requireCardholderName: requireCardholderName,
+    requireBillingPostalCode: requireBillingPostalCode,
+    billingCountryCode: billingCountryCode,
     isLoading: isLoading,
   );
 }
@@ -153,6 +157,23 @@ void main() {
       expect(received!.expirationMonth, '12');
       expect(received!.expirationYear, '2030');
       expect(received!.securityCode, '123');
+    });
+
+    testWidgets('forwards billing postal code and country', (tester) async {
+      PaymentCard? received;
+      await tester.pumpWidget(_wrap(_form(
+        requireBillingPostalCode: true,
+        billingCountryCode: 'US',
+        onSubmit: (card) async => received = card,
+      )));
+      await _fillValidCard(tester);
+      await tester.enterText(
+          find.byKey(const Key('paypal_card_zip')), '90210');
+      await tester.tap(find.text('Complete Order'));
+      await tester.pump();
+
+      expect(received?.billingAddress?.postalCode, '90210');
+      expect(received?.billingAddress?.countryCode, 'US');
     });
 
     testWidgets('calls onError when onSubmit throws', (tester) async {

@@ -1,3 +1,11 @@
+## Unreleased
+
+- **Improved Card Payments**: `PaymentCard` now accepts an optional
+  `PaymentCardBillingAddress`, which is sent to Android and iOS Card Payments.
+  `PaypalCardForm` forwards its optional billing postal code and country code.
+- **Docs**: clarified that Android checkout uses PayPal Web Payments, the
+  supported replacement for deprecated PayPal Native Payments.
+
 ## 0.1.1
 
 - **New**: Federated plugin architecture — `PaypalPlatform` abstract interface (`plugin_platform_interface`) for custom platform implementations

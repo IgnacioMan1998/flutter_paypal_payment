@@ -91,6 +91,33 @@ void main() {
       expect(message.cardholderName, 'John Doe');
     });
 
+    test('maps billing address fields', () {
+      final card = PaymentCard(
+        number: '4111111111111111',
+        expirationMonth: '12',
+        expirationYear: '2028',
+        securityCode: '123',
+        billingAddress: const PaymentCardBillingAddress(
+          streetAddress: '123 Main St',
+          extendedAddress: 'Apt 1A',
+          locality: 'Anytown',
+          region: 'CA',
+          postalCode: '12345',
+          countryCode: 'US',
+        ),
+      );
+
+      final address = card.toMessage().billingAddress;
+
+      expect(address, isNotNull);
+      expect(address!.streetAddress, '123 Main St');
+      expect(address.extendedAddress, 'Apt 1A');
+      expect(address.locality, 'Anytown');
+      expect(address.region, 'CA');
+      expect(address.postalCode, '12345');
+      expect(address.countryCode, 'US');
+    });
+
     test('maps card with null cardholderName', () {
       final card = PaymentCard(
         number: '4111111111111111',
@@ -139,10 +166,7 @@ void main() {
         securityCode: '789',
       );
 
-      final request = CardPaymentRequest(
-        orderId: 'ORDER-4',
-        card: card,
-      );
+      final request = CardPaymentRequest(orderId: 'ORDER-4', card: card);
 
       final message = request.toMessage();
 

@@ -1,20 +1,18 @@
 import 'package:pigeon/pigeon.dart';
 
-@ConfigurePigeon(PigeonOptions(
-  dartOut: 'lib/src/generated/paypal_api.g.dart',
-  kotlinOut:
-      'android/src/main/kotlin/com/flutter_paypal_payment/generated/PaypalApi.g.kt',
-  kotlinOptions: KotlinOptions(
-    package: 'com.flutter_paypal_payment.generated',
+@ConfigurePigeon(
+  PigeonOptions(
+    dartOut: 'lib/src/generated/paypal_api.g.dart',
+    kotlinOut:
+        'android/src/main/kotlin/com/flutter_paypal_payment/generated/PaypalApi.g.kt',
+    kotlinOptions: KotlinOptions(
+      package: 'com.flutter_paypal_payment.generated',
+    ),
+    swiftOut: 'ios/Classes/generated/PaypalApi.g.swift',
   ),
-  swiftOut: 'ios/Classes/generated/PaypalApi.g.swift',
-))
-
+)
 /// Environment for the PayPal SDK.
-enum PaypalEnvironment {
-  sandbox,
-  live,
-}
+enum PaypalEnvironment { sandbox, live }
 
 /// Configuration to initialize the PayPal SDK.
 class PaypalConfigMessage {
@@ -32,17 +30,11 @@ class PaypalConfigMessage {
 }
 
 /// Funding source for PayPal web checkout.
-enum FundingSourceMessage {
-  paypal,
-  payLater,
-}
+enum FundingSourceMessage { paypal, payLater }
 
 /// Request to start a PayPal checkout payment.
 class PaymentRequestMessage {
-  PaymentRequestMessage({
-    required this.orderId,
-    required this.fundingSource,
-  });
+  PaymentRequestMessage({required this.orderId, required this.fundingSource});
 
   /// The order ID created on your backend via PayPal Orders API.
   final String orderId;
@@ -71,6 +63,24 @@ class PaymentResultMessage {
 // ─── Card Payments ───
 
 /// A card to use for payment.
+class CardBillingAddressMessage {
+  CardBillingAddressMessage({
+    this.streetAddress,
+    this.extendedAddress,
+    this.locality,
+    this.region,
+    this.postalCode,
+    this.countryCode,
+  });
+
+  final String? streetAddress;
+  final String? extendedAddress;
+  final String? locality;
+  final String? region;
+  final String? postalCode;
+  final String? countryCode;
+}
+
 class CardMessage {
   CardMessage({
     required this.number,
@@ -78,6 +88,7 @@ class CardMessage {
     required this.expirationYear,
     required this.securityCode,
     this.cardholderName,
+    this.billingAddress,
   });
 
   final String number;
@@ -85,6 +96,7 @@ class CardMessage {
   final String expirationYear;
   final String securityCode;
   final String? cardholderName;
+  final CardBillingAddressMessage? billingAddress;
 }
 
 /// Request to approve an order with a card.
@@ -125,9 +137,7 @@ class CardPaymentResultMessage {
 
 /// Request to vault a PayPal account.
 class VaultRequestMessage {
-  VaultRequestMessage({
-    required this.setupTokenId,
-  });
+  VaultRequestMessage({required this.setupTokenId});
 
   /// The setup token ID created via PayPal Setup Tokens API.
   final String setupTokenId;
@@ -152,10 +162,7 @@ class VaultResultMessage {
 
 /// Request to vault a card.
 class CardVaultRequestMessage {
-  CardVaultRequestMessage({
-    required this.setupTokenId,
-    required this.card,
-  });
+  CardVaultRequestMessage({required this.setupTokenId, required this.card});
 
   final String setupTokenId;
   final CardMessage card;

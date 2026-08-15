@@ -16,6 +16,7 @@ import com.flutter_paypal_payment.generated.PaypalHostApi
 import com.flutter_paypal_payment.generated.VaultRequestMessage
 import com.flutter_paypal_payment.generated.VaultResultMessage
 import com.paypal.android.cardpayments.Card
+import com.paypal.android.cardpayments.Address
 import com.paypal.android.cardpayments.CardApproveOrderCallback
 import com.paypal.android.cardpayments.CardApproveOrderResult
 import com.paypal.android.cardpayments.CardAuthChallenge
@@ -571,11 +572,21 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
 
     // --- Helpers ---
 
-    private fun CardMessage.toNativeCard(): Card = Card(
+private fun CardMessage.toNativeCard(): Card = Card(
         number = number,
         expirationMonth = expirationMonth,
         expirationYear = expirationYear,
         securityCode = securityCode,
-        cardholderName = cardholderName,
-    )
+    cardholderName = cardholderName,
+    billingAddress = billingAddress?.let { address ->
+        Address(
+            streetAddress = address.streetAddress,
+            extendedAddress = address.extendedAddress,
+            locality = address.locality,
+            region = address.region,
+            postalCode = address.postalCode,
+            countryCode = address.countryCode,
+        )
+    },
+)
 }

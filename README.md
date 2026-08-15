@@ -3,9 +3,9 @@
 [![pub package](https://img.shields.io/pub/v/paypal_checkout_flutter.svg)](https://pub.dev/packages/paypal_checkout_flutter)
 [![License: BSD-3](https://img.shields.io/badge/License-BSD--3-blue.svg)](LICENSE)
 
-A complete Flutter package for PayPal payments using the **native PayPal Mobile SDK** (Android v2.3.0 / iOS v2.0.1). Type-safe Dart ↔ Kotlin/Swift communication via [Pigeon](https://pub.dev/packages/pigeon).
+A complete Flutter package for PayPal payments using the PayPal Mobile SDK (Android v2.3.0 / iOS v2.0.1). Type-safe Dart ↔ Kotlin/Swift communication via [Pigeon](https://pub.dev/packages/pigeon).
 
-> **No WebView.** Opens the system browser or processes cards directly with the native SDK.
+> **No embedded WebView.** PayPal checkout uses the supported PayPal Web Payments SDK flow; cards use the native Card Payments SDK.
 
 ## Features
 
@@ -207,6 +207,7 @@ showModalBottomSheet(
         submitButtonText: 'Pay \$35.20',
         requireCardholderName: false,   // optional name field
         requireBillingPostalCode: false, // optional ZIP field
+        billingCountryCode: 'US',        // optional ISO 3166-1 alpha-2 code
         onSubmit: (card) async {
           Navigator.of(ctx).pop();
           final result = await paypal.payWithCard(

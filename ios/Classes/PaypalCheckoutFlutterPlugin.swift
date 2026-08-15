@@ -108,7 +108,17 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
             expirationMonth: request.card.expirationMonth,
             expirationYear: request.card.expirationYear,
             securityCode: request.card.securityCode,
-            cardholderName: request.card.cardholderName
+            cardholderName: request.card.cardholderName,
+            billingAddress: request.card.billingAddress.map { address in
+                Address(
+                    addressLine1: address.streetAddress,
+                    addressLine2: address.extendedAddress,
+                    locality: address.locality,
+                    region: address.region,
+                    postalCode: address.postalCode!,
+                    countryCode: address.countryCode!
+                )
+            }
         )
 
         let sca: SCA
@@ -208,7 +218,17 @@ public class PaypalCheckoutFlutterPlugin: NSObject, FlutterPlugin, PaypalHostApi
             expirationMonth: request.card.expirationMonth,
             expirationYear: request.card.expirationYear,
             securityCode: request.card.securityCode,
-            cardholderName: request.card.cardholderName
+            cardholderName: request.card.cardholderName,
+            billingAddress: request.card.billingAddress.map { address in
+                Address(
+                    addressLine1: address.streetAddress,
+                    addressLine2: address.extendedAddress,
+                    locality: address.locality,
+                    region: address.region,
+                    postalCode: address.postalCode!,
+                    countryCode: address.countryCode!
+                )
+            }
         )
 
         let cardVaultRequest = CardVaultRequest(card: card, setupTokenID: request.setupTokenId)

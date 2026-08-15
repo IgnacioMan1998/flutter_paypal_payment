@@ -8,35 +8,49 @@ import '../../generated/paypal_api.g.dart' as pigeon;
 
 extension PaypalConfigMapper on PaypalConfig {
   pigeon.PaypalConfigMessage toMessage() => pigeon.PaypalConfigMessage(
-        clientId: clientId,
-        environment: environment == PaypalEnvironment.sandbox
-            ? pigeon.PaypalEnvironment.sandbox
-            : pigeon.PaypalEnvironment.live,
-        returnUrl: returnUrl,
-      );
+    clientId: clientId,
+    environment: environment == PaypalEnvironment.sandbox
+        ? pigeon.PaypalEnvironment.sandbox
+        : pigeon.PaypalEnvironment.live,
+    returnUrl: returnUrl,
+  );
 }
 
 extension PaymentRequestMapper on PaymentRequest {
   pigeon.PaymentRequestMessage toMessage() => pigeon.PaymentRequestMessage(
-        orderId: orderId,
-        fundingSource: fundingSource == PaypalFundingSource.payLater
-            ? pigeon.FundingSourceMessage.payLater
-            : pigeon.FundingSourceMessage.paypal,
-      );
+    orderId: orderId,
+    fundingSource: fundingSource == PaypalFundingSource.payLater
+        ? pigeon.FundingSourceMessage.payLater
+        : pigeon.FundingSourceMessage.paypal,
+  );
 }
 
 extension PaymentCardMapper on PaymentCard {
   pigeon.CardMessage toMessage() => pigeon.CardMessage(
-        number: number,
-        expirationMonth: expirationMonth,
-        expirationYear: expirationYear,
-        securityCode: securityCode,
-        cardholderName: cardholderName,
+    number: number,
+    expirationMonth: expirationMonth,
+    expirationYear: expirationYear,
+    securityCode: securityCode,
+    cardholderName: cardholderName,
+    billingAddress: billingAddress?.toMessage(),
+  );
+}
+
+extension PaymentCardBillingAddressMapper on PaymentCardBillingAddress {
+  pigeon.CardBillingAddressMessage toMessage() =>
+      pigeon.CardBillingAddressMessage(
+        streetAddress: streetAddress,
+        extendedAddress: extendedAddress,
+        locality: locality,
+        region: region,
+        postalCode: postalCode,
+        countryCode: countryCode,
       );
 }
 
 extension CardPaymentRequestMapper on CardPaymentRequest {
-  pigeon.CardPaymentRequestMessage toMessage() => pigeon.CardPaymentRequestMessage(
+  pigeon.CardPaymentRequestMessage toMessage() =>
+      pigeon.CardPaymentRequestMessage(
         orderId: orderId,
         card: card.toMessage(),
         sca: sca,
@@ -44,14 +58,13 @@ extension CardPaymentRequestMapper on CardPaymentRequest {
 }
 
 extension VaultPaypalRequestMapper on VaultPaypalRequest {
-  pigeon.VaultRequestMessage toMessage() => pigeon.VaultRequestMessage(
-        setupTokenId: setupTokenId,
-      );
+  pigeon.VaultRequestMessage toMessage() =>
+      pigeon.VaultRequestMessage(setupTokenId: setupTokenId);
 }
 
 extension VaultCardRequestMapper on VaultCardRequest {
   pigeon.CardVaultRequestMessage toMessage() => pigeon.CardVaultRequestMessage(
-        setupTokenId: setupTokenId,
-        card: card.toMessage(),
-      );
+    setupTokenId: setupTokenId,
+    card: card.toMessage(),
+  );
 }
