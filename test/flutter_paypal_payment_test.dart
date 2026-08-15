@@ -367,6 +367,16 @@ void main() {
       );
       expect(config.returnUrl, 'com.example.app://callback');
     });
+
+    test('PaypalConfig accepts an Android return scheme', () {
+      final config = PaypalConfig(
+        clientId: 'test-client-id',
+        environment: PaypalEnvironment.sandbox,
+        returnUrl: 'com.example.app',
+      );
+
+      expect(config.returnUrl, 'com.example.app');
+    });
   });
 
   // ═══════════════════════════════════════════════════════

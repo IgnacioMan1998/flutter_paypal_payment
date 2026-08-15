@@ -106,7 +106,7 @@ Add the deep link intent filter in your `AndroidManifest.xml`:
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="com.example.myapp" android:host="paypalpay" />
+    <data android:scheme="com.example.myapp" />
     </intent-filter>
 </activity>
 ```
@@ -126,7 +126,7 @@ Future<void> main() async {
   await paypal.init(PaypalConfig(
     clientId: 'YOUR_CLIENT_ID',
     environment: PaypalEnvironment.sandbox,
-    returnUrl: 'com.example.myapp://paypalpay',
+    returnUrl: 'com.example.myapp',
   ));
 
   runApp(MyApp());

@@ -3,6 +3,7 @@ package com.flutter_paypal_payment
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import com.flutter_paypal_payment.generated.CardMessage
 import com.flutter_paypal_payment.generated.CardPaymentRequestMessage
 import com.flutter_paypal_payment.generated.CardPaymentResultMessage
@@ -263,7 +264,10 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
                 clientId = config.clientId,
                 environment = environment,
             )
-            returnUrl = config.returnUrl
+            // PayPal Web Payments expects the app's URL scheme, not a full
+            // callback URL. Accept the older scheme://host form at the Dart
+            // boundary but never pass it through to the SDK unchanged.
+            returnUrl = config.returnUrl?.let(::toReturnScheme)
 
             val ctx = context
             if (ctx != null && returnUrl != null) {
@@ -572,7 +576,7 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
 
     // --- Helpers ---
 
-private fun CardMessage.toNativeCard(): Card = Card(
+    private fun CardMessage.toNativeCard(): Card = Card(
         number = number,
         expirationMonth = expirationMonth,
         expirationYear = expirationYear,
@@ -588,5 +592,8 @@ private fun CardMessage.toNativeCard(): Card = Card(
             countryCode = address.countryCode,
         )
     },
-)
+    )
+
+    private fun toReturnScheme(value: String): String =
+        Uri.parse(value).scheme ?: value
 }

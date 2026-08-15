@@ -16,7 +16,7 @@ class PaypalConfig {
     if (returnUrl != null &&
         !PaypalValidationRules.returnUrlPattern.hasMatch(returnUrl!)) {
       throw ArgumentError(
-          'returnUrl must be a valid deep link (e.g. "com.example.app://paypalpay")');
+          'returnUrl must be a valid scheme or deep link (e.g. "com.example.app" or "com.example.app://paypalpay")');
     }
     if (httpTimeout.inSeconds < 1) {
       throw ArgumentError('httpTimeout must be at least 1 second');
@@ -26,8 +26,11 @@ class PaypalConfig {
   final String clientId;
   final PaypalEnvironment environment;
 
-  /// Deep link return URL. Required on Android.
-  /// Example: "com.example.app://paypalpay"
+  /// Android return scheme or deep link return URL. Required on Android.
+  ///
+  /// For Android Web Payments, prefer the bare scheme, for example
+  /// `com.example.app`. Full deep links remain accepted for compatibility and
+  /// are normalized to their scheme by the Android host implementation.
   final String? returnUrl;
 
   /// Timeout for all HTTP requests to the PayPal REST API.

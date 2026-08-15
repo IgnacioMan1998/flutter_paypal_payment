@@ -15,9 +15,9 @@ abstract final class PaypalValidationRules {
   /// CVV/CVC: 3 or 4 digits.
   static final RegExp securityCodePattern = RegExp(r'^\d{3,4}$');
 
-  /// Deep link return URL: scheme://host.
+  /// Android return scheme or a deep link return URL.
   static final RegExp returnUrlPattern =
-      RegExp(r'^[a-zA-Z][a-zA-Z0-9._+-]*://[a-zA-Z0-9._-]+$');
+      RegExp(r'^[a-zA-Z][a-zA-Z0-9._+-]*(?:://[a-zA-Z0-9._-]+)?$');
 
   /// Safe PayPal ID (order, capture, setup token): alphanumeric + dash/underscore.
   static final RegExp safeIdPattern = RegExp(r'^[A-Za-z0-9_-]+$');
