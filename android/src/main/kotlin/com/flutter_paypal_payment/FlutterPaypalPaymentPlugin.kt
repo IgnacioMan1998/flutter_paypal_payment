@@ -50,6 +50,7 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
     private var activity: Activity? = null
     private var coreConfig: CoreConfig? = null
     private var returnUrl: String? = null
+    private var webReturnScheme: String? = null
     private var paypalClient: PayPalWebCheckoutClient? = null
     private var cardClient: CardClient? = null
 
@@ -255,6 +256,12 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         callback: (Result<Unit>) -> Unit
     ) {
         try {
+            if (config.returnUrl.isNullOrBlank()) {
+                callback(Result.failure(IllegalArgumentException(
+                    "returnUrl is required on Android for PayPal checkout and 3DS."
+                )))
+                return
+            }
             val environment = when (config.environment) {
                 PaypalEnvironment.SANDBOX -> Environment.SANDBOX
                 PaypalEnvironment.LIVE -> Environment.LIVE
@@ -267,11 +274,12 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
             // PayPal Web Payments expects the app's URL scheme, not a full
             // callback URL. Accept the older scheme://host form at the Dart
             // boundary but never pass it through to the SDK unchanged.
-            returnUrl = config.returnUrl?.let(::toReturnScheme)
+            returnUrl = config.returnUrl
+            webReturnScheme = config.returnUrl?.let(::toReturnScheme)
 
             val ctx = context
-            if (ctx != null && returnUrl != null) {
-                paypalClient = PayPalWebCheckoutClient(ctx, coreConfig!!, returnUrl!!)
+            if (ctx != null && webReturnScheme != null) {
+                paypalClient = PayPalWebCheckoutClient(ctx, coreConfig!!, webReturnScheme!!)
                 cardClient = CardClient(ctx, coreConfig!!)
             }
 
@@ -287,6 +295,14 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         request: PaymentRequestMessage,
         callback: (Result<PaymentResultMessage>) -> Unit
     ) {
+        if (activeFlow != ActiveFlow.NONE) {
+            callback(Result.success(PaymentResultMessage(
+                success = false,
+                errorMessage = "Another PayPal operation is already in progress.",
+                errorCode = "OPERATION_IN_PROGRESS",
+            )))
+            return
+        }
         val currentActivity = activity
         val client = paypalClient
 
@@ -355,6 +371,14 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         request: CardPaymentRequestMessage,
         callback: (Result<CardPaymentResultMessage>) -> Unit
     ) {
+        if (activeFlow != ActiveFlow.NONE) {
+            callback(Result.success(CardPaymentResultMessage(
+                success = false,
+                errorMessage = "Another PayPal operation is already in progress.",
+                errorCode = "OPERATION_IN_PROGRESS",
+            )))
+            return
+        }
         val currentActivity = activity
         val client = cardClient
 
@@ -440,6 +464,14 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         request: VaultRequestMessage,
         callback: (Result<VaultResultMessage>) -> Unit
     ) {
+        if (activeFlow != ActiveFlow.NONE) {
+            callback(Result.success(VaultResultMessage(
+                success = false,
+                errorMessage = "Another PayPal operation is already in progress.",
+                errorCode = "OPERATION_IN_PROGRESS",
+            )))
+            return
+        }
         val currentActivity = activity
         val client = paypalClient
 
@@ -502,6 +534,14 @@ class FlutterPaypalPaymentPlugin : FlutterPlugin, ActivityAware, PaypalHostApi,
         request: CardVaultRequestMessage,
         callback: (Result<VaultResultMessage>) -> Unit
     ) {
+        if (activeFlow != ActiveFlow.NONE) {
+            callback(Result.success(VaultResultMessage(
+                success = false,
+                errorMessage = "Another PayPal operation is already in progress.",
+                errorCode = "OPERATION_IN_PROGRESS",
+            )))
+            return
+        }
         val currentActivity = activity
         val client = cardClient
 

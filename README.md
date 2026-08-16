@@ -126,7 +126,7 @@ Future<void> main() async {
   await paypal.init(PaypalConfig(
     clientId: 'YOUR_CLIENT_ID',
     environment: PaypalEnvironment.sandbox,
-    returnUrl: 'com.example.myapp',
+    returnUrl: 'com.example.myapp://paypalpay',
   ));
 
   runApp(MyApp());

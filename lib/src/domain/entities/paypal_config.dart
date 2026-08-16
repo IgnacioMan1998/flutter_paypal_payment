@@ -26,11 +26,12 @@ class PaypalConfig {
   final String clientId;
   final PaypalEnvironment environment;
 
-  /// Android return scheme or deep link return URL. Required on Android.
+  /// Android callback identifier. Required on Android.
   ///
-  /// For Android Web Payments, prefer the bare scheme, for example
-  /// `com.example.app`. Full deep links remain accepted for compatibility and
-  /// are normalized to their scheme by the Android host implementation.
+  /// Use a full deep link for card payments and 3DS, for example
+  /// `com.example.app://paypalpay`. Android derives its scheme automatically
+  /// for PayPal Web Payments while preserving this full value for Card SDK
+  /// requests.
   final String? returnUrl;
 
   /// Timeout for all HTTP requests to the PayPal REST API.
